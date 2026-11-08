@@ -3,7 +3,7 @@ import { BrandLogo } from './BrandLogo';
 import { FoodCard } from './FoodCard';
 import { FOOD_ITEMS, FoodJointItem } from '../data/foodJoints';
 import { PWAInstallButton } from './PWAInstallButton';
-import { Home, History, LogOut, Search, Bell, CheckCircle2 } from 'lucide-react';
+import { Home, History, LogOut, Search, Bell, CheckCircle2, Sparkles, Utensils } from 'lucide-react';
 
 interface DesktopHomeProps {
   onLogout: () => void;
@@ -15,6 +15,8 @@ interface DesktopHomeProps {
   unreadNotificationCount?: number;
 }
 
+const CATEGORIES = ['All', 'Popular', 'Local Dishes', 'Rice & Bowls', 'Grills'] as const;
+
 export const DesktopHome: React.FC<DesktopHomeProps> = ({
   onLogout,
   onSelectFood,
@@ -25,23 +27,28 @@ export const DesktopHome: React.FC<DesktopHomeProps> = ({
   unreadNotificationCount = 0,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [showNotifications, setShowNotifications] = useState(false);
 
   const filteredItems = FOOD_ITEMS.filter((item) => {
     const q = searchQuery.toLowerCase().trim();
-    if (!q) return true;
-    return (
+    const matchesSearch =
+      !q ||
       item.name.toLowerCase().includes(q) ||
       item.location.toLowerCase().includes(q) ||
       item.jointName.toLowerCase().includes(q) ||
-      item.category.toLowerCase().includes(q)
-    );
+      item.category.toLowerCase().includes(q);
+
+    const matchesCategory =
+      selectedCategory === 'All' || item.category === selectedCategory;
+
+    return matchesSearch && matchesCategory;
   });
 
   return (
     <div className="w-full bg-white flex min-h-[680px] text-slate-800 select-none">
       {/* Left Sidebar matching screenshot 1 (PS_Home) */}
-      <aside className="w-56 shrink-0 border-r border-slate-100 flex flex-col justify-between p-6">
+      <aside className="w-56 shrink-0 border-r border-slate-100 flex flex-col justify-between p-6 bg-white">
         <div>
           {/* Logo at top */}
           <div className="mb-10 pl-1">
@@ -49,13 +56,13 @@ export const DesktopHome: React.FC<DesktopHomeProps> = ({
           </div>
 
           {/* Navigation Links */}
-          <nav className="space-y-2">
+          <nav className="space-y-1.5">
             <button
               type="button"
               onClick={() => onNavTabChange('home')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
                 activeNavTab === 'home'
-                  ? 'bg-red-50 text-[#E53935]'
+                  ? 'bg-red-50 text-[#E53935] shadow-xs'
                   : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
               }`}
             >
@@ -66,9 +73,9 @@ export const DesktopHome: React.FC<DesktopHomeProps> = ({
             <button
               type="button"
               onClick={() => onNavTabChange('history')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
                 activeNavTab === 'history'
-                  ? 'bg-red-50 text-[#E53935]'
+                  ? 'bg-red-50 text-[#E53935] shadow-xs'
                   : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
               }`}
             >
@@ -83,10 +90,12 @@ export const DesktopHome: React.FC<DesktopHomeProps> = ({
 
             <button
               type="button"
-              onClick={() => onOpenNotifications ? onOpenNotifications() : onNavTabChange('notifications')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
+              onClick={() =>
+                onOpenNotifications ? onOpenNotifications() : onNavTabChange('notifications')
+              }
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
                 activeNavTab === 'notifications'
-                  ? 'bg-red-50 text-[#E53935]'
+                  ? 'bg-red-50 text-[#E53935] shadow-xs'
                   : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
               }`}
             >
@@ -102,7 +111,7 @@ export const DesktopHome: React.FC<DesktopHomeProps> = ({
             <button
               type="button"
               onClick={onLogout}
-              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-semibold text-slate-500 hover:text-red-600 hover:bg-red-50/50 transition-colors cursor-pointer"
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-500 hover:text-red-600 hover:bg-red-50/50 transition-colors cursor-pointer"
             >
               <LogOut className="w-4 h-4 shrink-0" />
               <span>Logout</span>
@@ -117,11 +126,13 @@ export const DesktopHome: React.FC<DesktopHomeProps> = ({
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 bg-white">
         {/* Top Header / Breadcrumbs Bar */}
         <header className="h-16 border-b border-slate-100 px-8 flex items-center justify-between">
-          <div className="text-sm font-bold text-[#E53935]">
-            {activeNavTab === 'home' ? 'Home' : 'Order History'}
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold text-[#E53935]">Home</span>
+            <span className="text-slate-300 font-light text-xs">/</span>
+            <span className="text-xs text-slate-500 font-medium">Haatso Station Joint Dispatch</span>
           </div>
 
           <div className="flex items-center gap-4">
@@ -134,7 +145,9 @@ export const DesktopHome: React.FC<DesktopHomeProps> = ({
                 title="Notifications"
               >
                 <Bell className="w-5 h-5" />
-                <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" />
+                {unreadNotificationCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" />
+                )}
               </button>
 
               {/* Notification Dropdown */}
@@ -151,7 +164,9 @@ export const DesktopHome: React.FC<DesktopHomeProps> = ({
                       <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                       <div>
                         <p className="font-semibold text-slate-800">Dispatch Personnel Assigned</p>
-                        <p className="text-[11px] text-slate-500">Haatso Station personnel is coordinating orders.</p>
+                        <p className="text-[11px] text-slate-500">
+                          Haatso Station personnel is coordinating orders.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -174,7 +189,7 @@ export const DesktopHome: React.FC<DesktopHomeProps> = ({
             {/* Profile Avatar Badge "IA" (Isaiah) matching screenshot */}
             <div
               className="w-8 h-8 rounded-full bg-[#E53935] text-white flex items-center justify-center font-bold text-xs tracking-tight shadow-xs cursor-pointer hover:ring-2 hover:ring-red-300 transition-all"
-              title="Isaiah (Permanent Staff)"
+              title="Isaiah Amoh Mensah (Permanent Staff)"
             >
               IA
             </div>
@@ -183,35 +198,66 @@ export const DesktopHome: React.FC<DesktopHomeProps> = ({
 
         {/* Content Body */}
         <main className="flex-1 p-8 overflow-y-auto">
-          {/* Greeting */}
-          <div className="mb-6">
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-              Hi, Isaiah!
-            </h1>
-            <p className="text-slate-400 font-normal text-sm md:text-base mt-1">
-              Browse food joints and place orders
-            </p>
+          {/* Greeting Banner */}
+          <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                Hi, Isaiah!
+              </h1>
+              <p className="text-slate-400 font-normal text-sm md:text-base mt-1">
+                Browse food joints and place orders with custom pricing
+              </p>
+            </div>
+
+            {/* Live Operational Badge */}
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/60 text-xs font-semibold text-emerald-700">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>NSP Runners on Standby at Haatso</span>
+            </div>
           </div>
 
-          {/* Search Bar matching screenshot */}
-          <div className="mb-8 max-w-sm">
-            <div className="relative flex items-center">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
-              <input
-                type="text"
-                placeholder="Search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-slate-100/70 border border-slate-200/60 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#E53935] focus:bg-white focus:ring-1 focus:ring-[#E53935] transition-all"
-              />
-              {searchQuery && (
+          {/* Search Bar + Category Pills */}
+          <div className="mb-8 space-y-4">
+            <div className="max-w-md">
+              <div className="relative flex items-center">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Search dishes, joints, or locations..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-100/70 border border-slate-200/60 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#E53935] focus:bg-white focus:ring-1 focus:ring-[#E53935] transition-all"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 text-xs text-slate-400 hover:text-slate-600 cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Category Filter Pills */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+              {CATEGORIES.map((cat) => (
                 <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 text-xs text-slate-400 hover:text-slate-600 cursor-pointer"
+                  key={cat}
+                  type="button"
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer shrink-0 ${
+                    selectedCategory === cat
+                      ? 'bg-[#FFEAE6] text-[#E53935] shadow-xs ring-1 ring-red-200'
+                      : 'bg-slate-100 hover:bg-slate-200/80 text-slate-600'
+                  }`}
                 >
-                  Clear
+                  {cat}
                 </button>
-              )}
+              ))}
+              <span className="text-xs text-slate-400 ml-auto hidden sm:inline">
+                {filteredItems.length} {filteredItems.length === 1 ? 'joint' : 'joints'} available
+              </span>
             </div>
           </div>
 
@@ -223,13 +269,20 @@ export const DesktopHome: React.FC<DesktopHomeProps> = ({
               ))}
             </div>
           ) : (
-            <div className="py-12 text-center text-slate-400">
-              <p className="text-sm">No food joints found matching "{searchQuery}".</p>
+            <div className="py-16 text-center text-slate-400">
+              <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3 text-slate-400">
+                <Utensils className="w-6 h-6 stroke-[1.5]" />
+              </div>
+              <p className="text-sm font-semibold text-slate-700">No food joints match your filter.</p>
+              <p className="text-xs text-slate-400 mt-1">Try searching for Gob3, Jollof, or reset your filters.</p>
               <button
-                onClick={() => setSearchQuery('')}
-                className="mt-2 text-xs text-[#E53935] font-semibold hover:underline cursor-pointer"
+                onClick={() => {
+                  setSearchQuery('');
+                  setSelectedCategory('All');
+                }}
+                className="mt-3 text-xs text-[#E53935] font-semibold hover:underline cursor-pointer"
               >
-                Clear Search Filter
+                Reset All Filters
               </button>
             </div>
           )}

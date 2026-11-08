@@ -14,6 +14,8 @@ interface MobileHomeProps {
   unreadNotificationCount?: number;
 }
 
+const CATEGORIES = ['All', 'Popular', 'Local Dishes', 'Rice & Bowls', 'Grills'] as const;
+
 export const MobileHome: React.FC<MobileHomeProps> = ({
   onSelectFood,
   orderCount,
@@ -24,17 +26,22 @@ export const MobileHome: React.FC<MobileHomeProps> = ({
   unreadNotificationCount = 1,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [showSearchInput, setShowSearchInput] = useState(true);
 
   const filteredItems = FOOD_ITEMS.filter((item) => {
     const q = searchQuery.toLowerCase().trim();
-    if (!q) return true;
-    return (
+    const matchesSearch =
+      !q ||
       item.name.toLowerCase().includes(q) ||
       item.location.toLowerCase().includes(q) ||
       item.jointName.toLowerCase().includes(q) ||
-      item.category.toLowerCase().includes(q)
-    );
+      item.category.toLowerCase().includes(q);
+
+    const matchesCategory =
+      selectedCategory === 'All' || item.category === selectedCategory;
+
+    return matchesSearch && matchesCategory;
   });
 
   return (
@@ -45,7 +52,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({
         <BrandLogo size="sm" />
 
         {/* Right Action Icons: Search & Notification Bell with green badge */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <button
             type="button"
             onClick={() => setShowSearchInput(!showSearchInput)}
@@ -77,18 +84,23 @@ export const MobileHome: React.FC<MobileHomeProps> = ({
       {/* Main Body */}
       <div className="flex-1 px-4 py-4 pb-24 overflow-y-auto">
         {/* Greeting matching screenshot */}
-        <div className="mb-4">
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Hi, Isaiah!
-          </h1>
+        <div className="mb-3.5">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+              Hi, Isaiah!
+            </h1>
+            <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+              ● Standby at Haatso
+            </span>
+          </div>
           <p className="text-slate-400 font-normal text-xs sm:text-sm mt-0.5">
             Browse food joints and place orders
           </p>
         </div>
 
-        {/* Search Bar on Mobile (Explicitly requested by user) */}
+        {/* Search Bar on Mobile */}
         {showSearchInput && (
-          <div className="mb-5">
+          <div className="mb-3.5">
             <div className="relative flex items-center">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
               <input
@@ -96,7 +108,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({
                 placeholder="Search food joints..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-100/80 border border-slate-200/60 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#E53935] focus:bg-white focus:ring-1 focus:ring-[#E53935] transition-all"
+                className="w-full pl-10 pr-8 py-2.5 rounded-xl bg-slate-100/80 border border-slate-200/60 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#E53935] focus:bg-white focus:ring-1 focus:ring-[#E53935] transition-all"
               />
               {searchQuery && (
                 <button
@@ -110,6 +122,24 @@ export const MobileHome: React.FC<MobileHomeProps> = ({
           </div>
         )}
 
+        {/* Horizontal Category Filter Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-2.5 mb-2 no-scrollbar">
+          {CATEGORIES.map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => setSelectedCategory(cat)}
+              className={`px-3 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
+                selectedCategory === cat
+                  ? 'bg-[#FFEAE6] text-[#E53935] ring-1 ring-red-200'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+
         {/* 2-Column Grid matching screenshot 2 */}
         {filteredItems.length > 0 ? (
           <div className="grid grid-cols-2 gap-3 sm:gap-4">
@@ -119,12 +149,15 @@ export const MobileHome: React.FC<MobileHomeProps> = ({
           </div>
         ) : (
           <div className="py-12 text-center text-slate-400 text-xs">
-            <p>No food joints matching "{searchQuery}"</p>
+            <p className="font-semibold text-slate-600">No food joints match "{searchQuery}"</p>
             <button
-              onClick={() => setSearchQuery('')}
-              className="mt-2 text-[#E53935] font-semibold"
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedCategory('All');
+              }}
+              className="mt-2 text-[#E53935] font-semibold hover:underline"
             >
-              Reset Search
+              Reset Search & Filter
             </button>
           </div>
         )}
@@ -141,8 +174,8 @@ export const MobileHome: React.FC<MobileHomeProps> = ({
               activeTab === 'home' ? 'text-[#E53935]' : 'text-slate-400 hover:text-slate-600'
             }`}
           >
-            <Home className="w-5 h-5" />
-            <span className="text-[10px] font-semibold">Home</span>
+            <Home className="w-5 h-5 stroke-[2.2]" />
+            <span className="text-[10px] font-bold tracking-tight">Home</span>
           </button>
 
           {/* Tab 2: Order History */}
@@ -153,10 +186,10 @@ export const MobileHome: React.FC<MobileHomeProps> = ({
               activeTab === 'history' ? 'text-[#E53935]' : 'text-slate-400 hover:text-slate-600'
             }`}
           >
-            <History className="w-5 h-5" />
-            <span className="text-[10px] font-medium">Order History</span>
+            <History className="w-5 h-5 stroke-[2]" />
+            <span className="text-[10px] font-semibold tracking-tight">History</span>
             {orderCount > 0 && (
-              <span className="absolute -top-1 -right-2 bg-[#E53935] text-white text-[9px] font-bold px-1 rounded-full">
+              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#E53935] text-white text-[8px] font-bold flex items-center justify-center">
                 {orderCount}
               </span>
             )}
@@ -170,8 +203,8 @@ export const MobileHome: React.FC<MobileHomeProps> = ({
               activeTab === 'profile' ? 'text-[#E53935]' : 'text-slate-400 hover:text-slate-600'
             }`}
           >
-            <User className="w-5 h-5" />
-            <span className="text-[10px] font-medium">Profile</span>
+            <User className="w-5 h-5 stroke-[2]" />
+            <span className="text-[10px] font-semibold tracking-tight">Profile</span>
           </button>
         </div>
       </nav>

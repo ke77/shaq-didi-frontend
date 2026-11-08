@@ -16,6 +16,7 @@ import { PermanentStaffOrderHistory } from './components/PermanentStaffOrderHist
 import { MobileOrderHistory } from './components/MobileOrderHistory';
 import { NspOrderHistory } from './components/NspOrderHistory';
 import { NotificationView, DesktopNotificationView } from './components/NotificationView';
+import { PhoneFrame } from './components/PhoneFrame';
 import { INITIAL_NOTIFICATIONS, AppNotification } from './data/notifications';
 import { FOOD_ITEMS, FoodJointItem } from './data/foodJoints';
 import { SignUpFormData } from './types';
@@ -353,47 +354,39 @@ export default function App() {
             {/* VIEW MODE: Force Mobile PWA View */}
             {viewMode === 'mobile' && (
               <div className="py-2">
-                <div className="relative w-[340px] sm:w-[360px] rounded-[2.5rem] bg-slate-900 p-3 shadow-2xl border border-slate-700/80 ring-1 ring-black/40 mx-auto">
-                  {/* Dynamic Island / Speaker Notch */}
-                  <div className="absolute top-5 left-1/2 -translate-x-1/2 z-30 w-24 h-4 bg-slate-900 rounded-full flex items-center justify-center">
-                    <div className="w-10 h-1 bg-slate-800 rounded-full" />
-                  </div>
-
-                  {/* Phone Screen */}
-                  <div className="rounded-[2rem] overflow-hidden bg-white shadow-inner min-h-[640px] flex flex-col relative">
-                    {mobileNavTab === 'home' && (
-                      <MobileHome
-                        onSelectFood={handleMobileSelectFood}
-                        orderCount={orders.length}
-                        activeTab={mobileNavTab}
-                        onTabChange={setMobileNavTab}
-                        onLogout={handleLogout}
-                        onOpenNotifications={() => setActiveScreen('notifications')}
-                        unreadNotificationCount={unreadNotificationCount}
-                      />
-                    )}
-                    {mobileNavTab === 'history' && (
-                      <MobileOrderHistory
-                        orders={orders}
-                        orderCount={orders.length}
-                        activeNavTab={mobileNavTab}
-                        onNavTabChange={setMobileNavTab}
-                        onGoHome={() => setMobileNavTab('home')}
-                        onReorder={handleReorder}
-                        onCancelOrder={handleCancelOrder}
-                      />
-                    )}
-                    {mobileNavTab === 'profile' && (
-                      <ProfileView
-                        onBack={() => setMobileNavTab('home')}
-                        onLogout={handleLogout}
-                        activeNavTab={mobileNavTab}
-                        onNavTabChange={setMobileNavTab}
-                        orderCount={orders.length}
-                      />
-                    )}
-                  </div>
-                </div>
+                <PhoneFrame>
+                  {mobileNavTab === 'home' && (
+                    <MobileHome
+                      onSelectFood={handleMobileSelectFood}
+                      orderCount={orders.length}
+                      activeTab={mobileNavTab}
+                      onTabChange={setMobileNavTab}
+                      onLogout={handleLogout}
+                      onOpenNotifications={() => setActiveScreen('notifications')}
+                      unreadNotificationCount={unreadNotificationCount}
+                    />
+                  )}
+                  {mobileNavTab === 'history' && (
+                    <MobileOrderHistory
+                      orders={orders}
+                      orderCount={orders.length}
+                      activeNavTab={mobileNavTab}
+                      onNavTabChange={setMobileNavTab}
+                      onGoHome={() => setMobileNavTab('home')}
+                      onReorder={handleReorder}
+                      onCancelOrder={handleCancelOrder}
+                    />
+                  )}
+                  {mobileNavTab === 'profile' && (
+                    <ProfileView
+                      onBack={() => setMobileNavTab('home')}
+                      onLogout={handleLogout}
+                      activeNavTab={mobileNavTab}
+                      onNavTabChange={setMobileNavTab}
+                      orderCount={orders.length}
+                    />
+                  )}
+                </PhoneFrame>
                 <p className="mt-3 text-center text-xs text-slate-400 font-medium tracking-wide">
                   ShaQ DIDI PWA Mobile Experience
                 </p>
@@ -434,44 +427,39 @@ export default function App() {
                     <span>Mobile PWA App</span>
                     <span className="text-slate-500 font-normal text-xs">(Haatso Station PWA)</span>
                   </div>
-                  <div className="relative w-[320px] sm:w-[350px] rounded-[2.5rem] bg-slate-900 p-3 shadow-2xl border border-slate-700/80 ring-1 ring-black/40">
-                    <div className="absolute top-5 left-1/2 -translate-x-1/2 z-30 w-24 h-4 bg-slate-900 rounded-full flex items-center justify-center">
-                      <div className="w-10 h-1 bg-slate-800 rounded-full" />
-                    </div>
-                    <div className="rounded-[2rem] overflow-hidden bg-white shadow-inner min-h-[620px] flex flex-col relative">
-                      {mobileNavTab === 'home' && (
-                        <MobileHome
-                          onSelectFood={handleMobileSelectFood}
-                          orderCount={orders.length}
-                          activeTab={mobileNavTab}
-                          onTabChange={setMobileNavTab}
-                          onLogout={handleLogout}
-                          onOpenNotifications={() => setActiveScreen('notifications')}
-                          unreadNotificationCount={unreadNotificationCount}
-                        />
-                      )}
-                      {mobileNavTab === 'history' && (
-                        <MobileOrderHistory
-                          orders={orders}
-                          orderCount={orders.length}
-                          activeNavTab={mobileNavTab}
-                          onNavTabChange={setMobileNavTab}
-                          onGoHome={() => setMobileNavTab('home')}
-                          onReorder={handleReorder}
-                          onCancelOrder={handleCancelOrder}
-                        />
-                      )}
-                      {mobileNavTab === 'profile' && (
-                        <ProfileView
-                          onBack={() => setMobileNavTab('home')}
-                          onLogout={handleLogout}
-                          activeNavTab={mobileNavTab}
-                          onNavTabChange={setMobileNavTab}
-                          orderCount={orders.length}
-                        />
-                      )}
-                    </div>
-                  </div>
+                  <PhoneFrame widthClass="w-[320px] sm:w-[350px]">
+                    {mobileNavTab === 'home' && (
+                      <MobileHome
+                        onSelectFood={handleMobileSelectFood}
+                        orderCount={orders.length}
+                        activeTab={mobileNavTab}
+                        onTabChange={setMobileNavTab}
+                        onLogout={handleLogout}
+                        onOpenNotifications={() => setActiveScreen('notifications')}
+                        unreadNotificationCount={unreadNotificationCount}
+                      />
+                    )}
+                    {mobileNavTab === 'history' && (
+                      <MobileOrderHistory
+                        orders={orders}
+                        orderCount={orders.length}
+                        activeNavTab={mobileNavTab}
+                        onNavTabChange={setMobileNavTab}
+                        onGoHome={() => setMobileNavTab('home')}
+                        onReorder={handleReorder}
+                        onCancelOrder={handleCancelOrder}
+                      />
+                    )}
+                    {mobileNavTab === 'profile' && (
+                      <ProfileView
+                        onBack={() => setMobileNavTab('home')}
+                        onLogout={handleLogout}
+                        activeNavTab={mobileNavTab}
+                        onNavTabChange={setMobileNavTab}
+                        orderCount={orders.length}
+                      />
+                    )}
+                  </PhoneFrame>
                 </div>
               </div>
             )}
@@ -486,22 +474,14 @@ export default function App() {
             {/* View Mode: Mobile screen */}
             {viewMode === 'mobile' ? (
               <div className="py-2">
-                <div className="w-full max-w-[380px] mb-2 px-2 flex items-center justify-between">
-                  <h2 className="text-xl font-medium text-slate-400 tracking-tight">Order Info</h2>
-                </div>
-                <div className="relative w-[340px] sm:w-[380px] rounded-[2.5rem] bg-slate-900 p-3 shadow-2xl border border-slate-700/80 ring-1 ring-black/40 mx-auto">
-                  <div className="absolute top-5 left-1/2 -translate-x-1/2 z-30 w-24 h-4 bg-slate-900 rounded-full flex items-center justify-center">
-                    <div className="w-10 h-1 bg-slate-800 rounded-full" />
-                  </div>
-                  <div className="rounded-[2rem] overflow-hidden bg-slate-100 shadow-inner min-h-[640px] flex flex-col relative">
-                    <OrderInfoPage
-                      item={selectedFoodItem}
-                      onBack={() => setActiveScreen('home')}
-                      onSubmitOrder={handlePlaceOrderInfo}
-                      isStandaloneScreen={false}
-                    />
-                  </div>
-                </div>
+                <PhoneFrame>
+                  <OrderInfoPage
+                    item={selectedFoodItem}
+                    onBack={() => setActiveScreen('home')}
+                    onSubmitOrder={handlePlaceOrderInfo}
+                    isStandaloneScreen={false}
+                  />
+                </PhoneFrame>
               </div>
             ) : viewMode === 'side-by-side' ? (
               /* View Mode: Side-by-Side (Desktop with Modal + Mobile Screen) */
@@ -531,19 +511,14 @@ export default function App() {
                   <div className="w-full mb-1 flex items-center justify-between">
                     <h2 className="text-base font-medium text-slate-400 tracking-tight">Order Info (Mobile)</h2>
                   </div>
-                  <div className="relative w-[320px] sm:w-[350px] rounded-[2.5rem] bg-slate-900 p-3 shadow-2xl border border-slate-700/80 ring-1 ring-black/40">
-                    <div className="absolute top-5 left-1/2 -translate-x-1/2 z-30 w-24 h-4 bg-slate-900 rounded-full flex items-center justify-center">
-                      <div className="w-10 h-1 bg-slate-800 rounded-full" />
-                    </div>
-                    <div className="rounded-[2rem] overflow-hidden bg-white shadow-inner min-h-[620px] flex flex-col relative">
-                      <OrderInfoPage
-                        item={selectedFoodItem}
-                        onBack={() => setActiveScreen('home')}
-                        onSubmitOrder={handlePlaceOrderInfo}
-                        isStandaloneScreen={false}
-                      />
-                    </div>
-                  </div>
+                  <PhoneFrame widthClass="w-[320px] sm:w-[350px]">
+                    <OrderInfoPage
+                      item={selectedFoodItem}
+                      onBack={() => setActiveScreen('home')}
+                      onSubmitOrder={handlePlaceOrderInfo}
+                      isStandaloneScreen={false}
+                    />
+                  </PhoneFrame>
                 </div>
               </div>
             ) : (
@@ -603,25 +578,20 @@ export default function App() {
                     {orders.length > 0 ? 'Empty State' : 'Sample Orders'}
                   </button>
                 </div>
-                <div className="relative w-[340px] sm:w-[360px] rounded-[2.5rem] bg-slate-900 p-3 shadow-2xl border border-slate-700/80 ring-1 ring-black/40 mx-auto">
-                  <div className="absolute top-5 left-1/2 -translate-x-1/2 z-30 w-24 h-4 bg-slate-900 rounded-full flex items-center justify-center">
-                    <div className="w-10 h-1 bg-slate-800 rounded-full" />
-                  </div>
-                  <div className="rounded-[2rem] overflow-hidden bg-white shadow-inner min-h-[640px] flex flex-col relative">
-                    <MobileOrderHistory
-                      orders={orders}
-                      orderCount={orders.length}
-                      activeNavTab="history"
-                      onNavTabChange={(tab) => {
-                        if (tab === 'home') setActiveScreen('home');
-                        if (tab === 'profile') setActiveScreen('profile');
-                      }}
-                      onGoHome={() => setActiveScreen('home')}
-                      onReorder={handleReorder}
-                      onCancelOrder={handleCancelOrder}
-                    />
-                  </div>
-                </div>
+                <PhoneFrame>
+                  <MobileOrderHistory
+                    orders={orders}
+                    orderCount={orders.length}
+                    activeNavTab="history"
+                    onNavTabChange={(tab) => {
+                      if (tab === 'home') setActiveScreen('home');
+                      if (tab === 'profile') setActiveScreen('profile');
+                    }}
+                    onGoHome={() => setActiveScreen('home')}
+                    onReorder={handleReorder}
+                    onCancelOrder={handleCancelOrder}
+                  />
+                </PhoneFrame>
               </div>
             ) : (
               /* Desktop and Responsive View */
@@ -750,30 +720,15 @@ export default function App() {
             {/* View Mode: Mobile screen */}
             {viewMode === 'mobile' ? (
               <div className="py-2">
-                <div className="w-full max-w-[380px] mb-2 px-2 flex items-center justify-between">
-                  <h2 className="text-xl font-medium text-slate-400 tracking-tight">Notification</h2>
-                  <button
-                    type="button"
-                    onClick={() => setNotifications(notifications.length > 0 ? [] : INITIAL_NOTIFICATIONS)}
-                    className="text-[11px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 cursor-pointer"
-                  >
-                    {notifications.length > 0 ? 'Empty State' : 'Reset Sample'}
-                  </button>
-                </div>
-                <div className="relative w-[340px] sm:w-[380px] rounded-[2.5rem] bg-slate-900 p-3 shadow-2xl border border-slate-700/80 ring-1 ring-black/40 mx-auto">
-                  <div className="absolute top-5 left-1/2 -translate-x-1/2 z-30 w-24 h-4 bg-slate-900 rounded-full flex items-center justify-center">
-                    <div className="w-10 h-1 bg-slate-800 rounded-full" />
-                  </div>
-                  <div className="rounded-[2rem] overflow-hidden bg-white shadow-inner min-h-[640px] flex flex-col relative">
-                    <NotificationView
-                      notifications={notifications}
-                      onBack={() => setActiveScreen('home')}
-                      onMarkAllAsRead={handleMarkAllNotificationsRead}
-                      onNotificationClick={handleNotificationClick}
-                      isStandaloneScreen={false}
-                    />
-                  </div>
-                </div>
+                <PhoneFrame>
+                  <NotificationView
+                    notifications={notifications}
+                    onBack={() => setActiveScreen('home')}
+                    onMarkAllAsRead={handleMarkAllNotificationsRead}
+                    onNotificationClick={handleNotificationClick}
+                    isStandaloneScreen={false}
+                  />
+                </PhoneFrame>
               </div>
             ) : viewMode === 'side-by-side' ? (
               /* View Mode: Side-by-Side (Desktop Notifications + Mobile Screen) */
@@ -797,20 +752,15 @@ export default function App() {
                   <div className="w-full mb-1 flex items-center justify-between">
                     <h2 className="text-base font-medium text-slate-400 tracking-tight">Notification (Mobile)</h2>
                   </div>
-                  <div className="relative w-[320px] sm:w-[350px] rounded-[2.5rem] bg-slate-900 p-3 shadow-2xl border border-slate-700/80 ring-1 ring-black/40">
-                    <div className="absolute top-5 left-1/2 -translate-x-1/2 z-30 w-24 h-4 bg-slate-900 rounded-full flex items-center justify-center">
-                      <div className="w-10 h-1 bg-slate-800 rounded-full" />
-                    </div>
-                    <div className="rounded-[2rem] overflow-hidden bg-white shadow-inner min-h-[620px] flex flex-col relative">
-                      <NotificationView
-                        notifications={notifications}
-                        onBack={() => setActiveScreen('home')}
-                        onMarkAllAsRead={handleMarkAllNotificationsRead}
-                        onNotificationClick={handleNotificationClick}
-                        isStandaloneScreen={false}
-                      />
-                    </div>
-                  </div>
+                  <PhoneFrame widthClass="w-[320px] sm:w-[350px]">
+                    <NotificationView
+                      notifications={notifications}
+                      onBack={() => setActiveScreen('home')}
+                      onMarkAllAsRead={handleMarkAllNotificationsRead}
+                      onNotificationClick={handleNotificationClick}
+                      isStandaloneScreen={false}
+                    />
+                  </PhoneFrame>
                 </div>
               </div>
             ) : (

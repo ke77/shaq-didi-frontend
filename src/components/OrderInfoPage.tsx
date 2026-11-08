@@ -157,21 +157,45 @@ export const OrderInfoPage: React.FC<OrderInfoPageProps> = ({
                 Amount
               </label>
               <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
+                  GH₵
+                </span>
                 <input
                   type="text"
                   inputMode="decimal"
-                  placeholder="Enter the Amount you want to buy"
+                  placeholder="Enter the Amount you want to buy (e.g. 45)"
                   value={amount}
                   onChange={(e) => {
                     setAmount(e.target.value);
                     if (errors.amount) setErrors((prev) => ({ ...prev, amount: undefined }));
                   }}
-                  className={`w-full px-4 py-3 rounded-xl border text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 bg-white transition-colors focus:outline-none ${
+                  className={`w-full pl-13 pr-4 py-3 rounded-xl border text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 bg-white transition-colors focus:outline-none ${
                     errors.amount
                       ? 'border-red-400 focus:border-red-500 ring-1 ring-red-400'
                       : 'border-slate-200 focus:border-[#E53935] focus:ring-1 focus:ring-[#E53935]'
                   }`}
                 />
+              </div>
+              {/* Quick amount pills */}
+              <div className="flex items-center gap-1.5 mt-2 overflow-x-auto pb-1">
+                <span className="text-[10px] text-slate-400 font-medium shrink-0">Presets:</span>
+                {['20', '30', '43', '60'].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => {
+                      setAmount(preset);
+                      if (errors.amount) setErrors((prev) => ({ ...prev, amount: undefined }));
+                    }}
+                    className={`text-[11px] px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer shrink-0 ${
+                      amount === preset
+                        ? 'bg-[#E53935] text-white shadow-xs'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                    }`}
+                  >
+                    GH₵ {preset}
+                  </button>
+                ))}
               </div>
               {errors.amount && (
                 <p className="text-[11px] text-red-500 mt-1 font-medium">{errors.amount}</p>
@@ -180,16 +204,38 @@ export const OrderInfoPage: React.FC<OrderInfoPageProps> = ({
 
             {/* Field 2: Leave a Note */}
             <div>
-              <label className="block text-xs sm:text-sm font-semibold text-[#E53935] mb-1.5">
-                Leave a Note
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs sm:text-sm font-semibold text-[#E53935]">
+                  Leave a Note
+                </label>
+                <span className="text-[10px] text-slate-400">Custom breakdown</span>
+              </div>
               <textarea
-                rows={4}
-                placeholder="Add any special instructions or requests"
+                rows={3}
+                placeholder="Add any special instructions or requests (e.g. Extra shito, fish, salad)"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 bg-white transition-colors focus:outline-none focus:border-[#E53935] focus:ring-1 focus:ring-[#E53935] resize-none"
               />
+              <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                {['Extra shito', 'Pack separately', 'More gari', 'Call on arrival'].map((sug) => (
+                  <button
+                    key={sug}
+                    type="button"
+                    onClick={() => {
+                      setNotes((prev) => {
+                        const trimmed = prev.trim();
+                        if (!trimmed) return sug;
+                        if (trimmed.toLowerCase().includes(sug.toLowerCase())) return trimmed;
+                        return `${trimmed}, ${sug}`;
+                      });
+                    }}
+                    className="text-[10px] px-2 py-0.5 rounded bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
+                  >
+                    + {sug}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Field 3: Select available Personnel */}
