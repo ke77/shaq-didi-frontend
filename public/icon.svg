@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E53935" />
+      <stop offset="100%" stop-color="#C62828" />
+    </linearGradient>
+  </defs>
+  <!-- Background with safe zone padding -->
+  <rect width="512" height="512" rx="112" fill="url(#bg)" />
+  
+  <!-- ShaQ DIDI Brand Icon Graphic -->
+  <g fill="#FFFFFF" transform="translate(64, 64) scale(0.75)">
+    <!-- Fork & Spoon Crest -->
+    <path d="M180 80 C180 50 200 40 210 40 C220 40 240 50 240 80 L240 160 C240 185 220 205 195 205 L195 320 C195 330 185 340 175 340 C165 340 155 330 155 320 L155 205 C130 205 110 185 110 160 L110 80 C110 50 130 40 140 40 C150 40 170 50 170 80 Z" opacity="0.95" />
+    <path d="M300 40 L300 120 C300 150 280 170 255 170 L255 320 C255 330 245 340 235 340 C225 340 215 330 215 320 L215 170 C190 170 170 150 170 120 L170 40 L195 40 L195 100 L210 100 L210 40 L235 40 L235 100 L250 100 L250 40 Z" opacity="0.95" />
+    
+    <!-- Bold Typography text -->
+    <text x="256" y="420" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="76" text-anchor="middle" fill="#FFFFFF" letter-spacing="1">ShaQ DIDI</text>
+  </g>
+</svg>

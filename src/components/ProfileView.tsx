@@ -1,0 +1,133 @@
+import React from 'react';
+import { ArrowLeft, LogOut, Home, History, User } from 'lucide-react';
+
+interface ProfileViewProps {
+  onBack?: () => void;
+  onLogout: () => void;
+  isStandaloneScreen?: boolean;
+  activeNavTab?: 'home' | 'history' | 'profile';
+  onNavTabChange?: (tab: 'home' | 'history' | 'profile') => void;
+  orderCount?: number;
+}
+
+export const ProfileView: React.FC<ProfileViewProps> = ({
+  onBack,
+  onLogout,
+  isStandaloneScreen = false,
+  activeNavTab,
+  onNavTabChange,
+  orderCount = 0,
+}) => {
+  return (
+    <div className={`w-full flex flex-col items-center select-none ${isStandaloneScreen ? 'py-4' : ''}`}>
+      {/* Title above screen on outer canvas matching screenshot */}
+      <div className="w-full max-w-[360px] sm:max-w-[380px] mb-2 px-2 flex items-center justify-between">
+        <h2 className="text-xl font-medium text-slate-400 tracking-tight">Profile</h2>
+      </div>
+
+      {/* Main Profile Card matching image_5e001cd4.png */}
+      <div className="w-full max-w-[360px] sm:max-w-[380px] bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-slate-100 flex flex-col min-h-[580px] relative animate-in fade-in zoom-in-95 duration-200 p-6 pb-20">
+        {/* Top Bar: Circular Back Button & Profile Title */}
+        <div className="flex items-center gap-3.5 mb-8 pt-1">
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="w-10 h-10 rounded-full bg-white border border-slate-200/80 shadow-xs flex items-center justify-center text-slate-800 hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
+              title="Back"
+            >
+              <ArrowLeft className="w-5 h-5 text-slate-800 stroke-[2.5]" />
+            </button>
+          )}
+          <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
+            Profile
+          </h1>
+        </div>
+
+        {/* User Identity Section */}
+        <div className="flex items-center gap-4 pb-6 border-b border-slate-100">
+          {/* Avatar: Coral/Red circle with "IA" */}
+          <div className="w-14 h-14 rounded-full bg-[#FF5745] text-white flex items-center justify-center font-bold text-xl tracking-tight shadow-sm shrink-0">
+            IA
+          </div>
+
+          {/* User Details */}
+          <div className="flex flex-col">
+            <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-snug">
+              Isaiah Amoh Mensah
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-400 font-normal mt-0.5">
+              isaiaham@gmail.com
+            </p>
+            <p className="text-xs sm:text-sm text-slate-400 font-normal mt-0.5">
+              0547016492
+            </p>
+          </div>
+        </div>
+
+        {/* Action Row: Logout matching screenshot */}
+        <div className="pt-6">
+          <button
+            type="button"
+            onClick={onLogout}
+            className="flex items-center gap-3 text-slate-700 hover:text-[#E53935] font-medium text-sm sm:text-base transition-colors cursor-pointer group w-full text-left"
+          >
+            <LogOut className="w-5 h-5 text-slate-700 group-hover:text-[#E53935] transition-colors shrink-0" />
+            <span>Logout</span>
+          </button>
+        </div>
+
+        {/* Bottom Smartphone Indicator Bar matching mockup */}
+        <div className="w-32 h-1 bg-slate-300 rounded-full mx-auto mt-auto mb-1" />
+
+        {/* Optional Mobile Bottom Navigation Bar when embedded in mobile app */}
+        {onNavTabChange && activeNavTab && (
+          <nav className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 py-2.5 px-6 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
+            <div className="flex items-center justify-around max-w-sm mx-auto">
+              {/* Tab 1: Home */}
+              <button
+                type="button"
+                onClick={() => onNavTabChange('home')}
+                className={`flex flex-col items-center gap-1 cursor-pointer transition-colors ${
+                  activeNavTab === 'home' ? 'text-[#E53935]' : 'text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                <Home className="w-5 h-5" />
+                <span className="text-[10px] font-medium">Home</span>
+              </button>
+
+              {/* Tab 2: Order History */}
+              <button
+                type="button"
+                onClick={() => onNavTabChange('history')}
+                className={`flex flex-col items-center gap-1 cursor-pointer transition-colors relative ${
+                  activeNavTab === 'history' ? 'text-[#E53935]' : 'text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                <History className="w-5 h-5" />
+                <span className="text-[10px] font-medium">Order History</span>
+                {orderCount > 0 && (
+                  <span className="absolute -top-1 -right-2 bg-[#E53935] text-white text-[9px] font-bold px-1 rounded-full">
+                    {orderCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Tab 3: Profile (Active) */}
+              <button
+                type="button"
+                onClick={() => onNavTabChange('profile')}
+                className={`flex flex-col items-center gap-1 cursor-pointer transition-colors ${
+                  activeNavTab === 'profile' ? 'text-[#E53935]' : 'text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                <User className="w-5 h-5" />
+                <span className="text-[10px] font-semibold">Profile</span>
+              </button>
+            </div>
+          </nav>
+        )}
+      </div>
+    </div>
+  );
+};

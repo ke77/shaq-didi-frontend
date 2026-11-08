@@ -1,0 +1,26 @@
+{
+  "id": "/",
+  "name": "ShaQ DIDI - Food Ordering & Personnel Dispatch",
+  "short_name": "ShaQ DIDI",
+  "description": "Browse food joints, place orders, and coordinate personnel dispatch.",
+  "theme_color": "#e53935",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "orientation": "portrait",
+  "start_url": "/",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

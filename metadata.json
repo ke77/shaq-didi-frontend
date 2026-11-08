@@ -1,0 +1,6 @@
+{
+  "name": "ShaQ DIDI - Sign Up",
+  "description": "ShaQ DIDI sign up and onboarding portal for Permanent Staff and National Service Personnel with food order dispatch coordination.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
