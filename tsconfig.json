@@ -21,11 +21,6 @@
         "./*"
       ]
     },
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
     "incremental": true,
     "noEmit": true,
     "strict": false,
@@ -33,15 +28,11 @@
     "resolveJsonModule": true
   },
   "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
+    "src",
+    "vite.config.ts"
   ],
   "exclude": [
     "node_modules",
-    ".next",
     "dist"
   ]
 }
