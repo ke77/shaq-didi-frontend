@@ -42,7 +42,7 @@ export const MobileOrderHistory: React.FC<MobileOrderHistoryProps> = ({
   const displayedOrders = activeSubTab === 'current' ? currentOrders : previousOrders;
 
   return (
-    <div className="w-full bg-white flex flex-col min-h-[640px] select-none relative pb-16">
+    <div className="w-full bg-white flex flex-col min-h-screen select-none relative pb-28">
       {/* Mobile Top Bar */}
       <header className="px-5 pt-5 pb-3 flex items-center justify-between border-b border-slate-50 sticky top-0 bg-white/95 backdrop-blur-xs z-20">
         <BrandLogo size="sm" />
@@ -238,52 +238,6 @@ export const MobileOrderHistory: React.FC<MobileOrderHistoryProps> = ({
           </div>
         )}
       </div>
-
-      {/* Fixed Mobile Bottom Navigation Bar (Home, Order History, Profile) */}
-      <nav className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 py-2.5 px-6 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
-        <div className="flex items-center justify-around max-w-sm mx-auto">
-          {/* Tab 1: Home */}
-          <button
-            type="button"
-            onClick={() => onNavTabChange('home')}
-            className={`flex flex-col items-center gap-1 cursor-pointer transition-colors ${
-              activeNavTab === 'home' ? 'text-[#E53935]' : 'text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <Home className="w-5 h-5" />
-            <span className="text-[10px] font-medium">Home</span>
-          </button>
-
-          {/* Tab 2: Order History (Active) */}
-          <button
-            type="button"
-            onClick={() => onNavTabChange('history')}
-            className={`flex flex-col items-center gap-1 cursor-pointer transition-colors relative ${
-              activeNavTab === 'history' ? 'text-[#E53935]' : 'text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <History className="w-5 h-5" />
-            <span className="text-[10px] font-semibold">Order History</span>
-            {orderCount > 0 && (
-              <span className="absolute -top-1 -right-2 bg-[#E53935] text-white text-[9px] font-bold px-1 rounded-full">
-                {orderCount}
-              </span>
-            )}
-          </button>
-
-          {/* Tab 3: Profile */}
-          <button
-            type="button"
-            onClick={() => onNavTabChange('profile')}
-            className={`flex flex-col items-center gap-1 cursor-pointer transition-colors ${
-              activeNavTab === 'profile' ? 'text-[#E53935]' : 'text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <User className="w-5 h-5" />
-            <span className="text-[10px] font-medium">Profile</span>
-          </button>
-        </div>
-      </nav>
     </div>
   );
 };

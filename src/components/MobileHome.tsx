@@ -170,52 +170,6 @@ export const MobileHome: React.FC<MobileHomeProps> = ({
         )}
       </div>
 
-      {/* Fixed Bottom Navigation Bar (PWA) matching screenshot 2 exactly */}
-      <nav className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 py-2.5 px-6 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
-        <div className="flex items-center justify-around max-w-sm mx-auto">
-          {/* Tab 1: Home (active red) */}
-          <button
-            type="button"
-            onClick={() => onTabChange('home')}
-            className={`flex flex-col items-center gap-1 cursor-pointer transition-colors ${
-              activeTab === 'home' ? 'text-[#E53935]' : 'text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <Home className="w-5 h-5 stroke-[2.2]" />
-            <span className="text-[10px] font-bold tracking-tight">Home</span>
-          </button>
-
-          {/* Tab 2: Order History */}
-          <button
-            type="button"
-            onClick={() => onTabChange('history')}
-            className={`flex flex-col items-center gap-1 cursor-pointer transition-colors relative ${
-              activeTab === 'history' ? 'text-[#E53935]' : 'text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <History className="w-5 h-5 stroke-[2]" />
-            <span className="text-[10px] font-semibold tracking-tight">History</span>
-            {orderCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#E53935] text-white text-[8px] font-bold flex items-center justify-center">
-                {orderCount}
-              </span>
-            )}
-          </button>
-
-          {/* Tab 3: Profile */}
-          <button
-            type="button"
-            onClick={() => onTabChange('profile')}
-            className={`flex flex-col items-center gap-1 cursor-pointer transition-colors ${
-              activeTab === 'profile' ? 'text-[#E53935]' : 'text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <User className="w-5 h-5 stroke-[2]" />
-            <span className="text-[10px] font-semibold tracking-tight">Profile</span>
-          </button>
-        </div>
-      </nav>
-
       {/* Slide-over Mobile Navigation Drawer matching desktop sidebar */}
       <MobileSidebarDrawer
         isOpen={isMenuOpen}

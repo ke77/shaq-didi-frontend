@@ -88,54 +88,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           )}
         </div>
       </div>
-
-        {/* Optional Mobile Bottom Navigation Bar when embedded in mobile app */}
-        {onNavTabChange && activeNavTab && (
-          <nav className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 py-2.5 px-6 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
-            <div className="flex items-center justify-around max-w-sm mx-auto">
-              {/* Tab 1: Home */}
-              <button
-                type="button"
-                onClick={() => onNavTabChange('home')}
-                className={`flex flex-col items-center gap-1 cursor-pointer transition-colors ${
-                  activeNavTab === 'home' ? 'text-[#E53935]' : 'text-slate-400 hover:text-slate-600'
-                }`}
-              >
-                <Home className="w-5 h-5" />
-                <span className="text-[10px] font-medium">Home</span>
-              </button>
-
-              {/* Tab 2: Order History */}
-              <button
-                type="button"
-                onClick={() => onNavTabChange('history')}
-                className={`flex flex-col items-center gap-1 cursor-pointer transition-colors relative ${
-                  activeNavTab === 'history' ? 'text-[#E53935]' : 'text-slate-400 hover:text-slate-600'
-                }`}
-              >
-                <History className="w-5 h-5" />
-                <span className="text-[10px] font-medium">Order History</span>
-                {orderCount > 0 && (
-                  <span className="absolute -top-1 -right-2 bg-[#E53935] text-white text-[9px] font-bold px-1 rounded-full">
-                    {orderCount}
-                  </span>
-                )}
-              </button>
-
-              {/* Tab 3: Profile (Active) */}
-              <button
-                type="button"
-                onClick={() => onNavTabChange('profile')}
-                className={`flex flex-col items-center gap-1 cursor-pointer transition-colors ${
-                  activeNavTab === 'profile' ? 'text-[#E53935]' : 'text-slate-400 hover:text-slate-600'
-                }`}
-              >
-                <User className="w-5 h-5" />
-                <span className="text-[10px] font-semibold">Profile</span>
-              </button>
-            </div>
-          </nav>
-        )}
-      </div>
-    );
+    </div>
+  );
 };

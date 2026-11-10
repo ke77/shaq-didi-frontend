@@ -13,6 +13,7 @@ import { OrderInfoPage, OrderInfoSubmitData } from './components/OrderInfoPage';
 import { DesktopOrderModal } from './components/DesktopOrderModal';
 import { PermanentStaffOrderHistory } from './components/PermanentStaffOrderHistory';
 import { MobileOrderHistory } from './components/MobileOrderHistory';
+import { MobileBottomNav } from './components/MobileBottomNav';
 import { NspOrderHistory } from './components/NspOrderHistory';
 import { NotificationView, DesktopNotificationView } from './components/NotificationView';
 import { INITIAL_NOTIFICATIONS, AppNotification } from './data/notifications';
@@ -430,6 +431,13 @@ export default function App() {
                 onToggleRole={toggleRole}
               />
             )}
+
+            {/* Persistent Fixed Bottom Navigation Bar on Mobile - always visible regardless of scroll */}
+            <MobileBottomNav
+              activeTab={mobileNavTab}
+              onTabChange={setMobileNavTab}
+              orderCount={orders.length}
+            />
           </div>
         )}
       </div>
