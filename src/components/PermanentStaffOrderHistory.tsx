@@ -34,7 +34,7 @@ export const PermanentStaffOrderHistory: React.FC<PermanentStaffOrderHistoryProp
   const displayedOrders = activeTab === 'current' ? currentOrders : previousOrders;
 
   return (
-    <div className="w-full bg-white flex min-h-[660px] text-slate-800 select-none rounded-2xl shadow-2xl overflow-hidden border border-slate-200/50">
+    <div className="w-full min-h-screen bg-white flex text-slate-800 select-none">
       {/* Left Sidebar matching screenshot image_373135d4.png */}
       <aside className="w-56 shrink-0 border-r border-slate-100 flex flex-col justify-between p-6 bg-white">
         <div>

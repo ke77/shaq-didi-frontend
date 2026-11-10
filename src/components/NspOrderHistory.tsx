@@ -8,12 +8,14 @@ interface NspOrderHistoryProps {
   orders: OrderRecord[];
   onUpdateStatus: (orderId: string, status: 'Preparing' | 'Dispatched' | 'Delivered') => void;
   onRefresh?: () => void;
+  onToggleRole?: () => void;
 }
 
 export const NspOrderHistory: React.FC<NspOrderHistoryProps> = ({
   orders,
   onUpdateStatus,
   onRefresh,
+  onToggleRole,
 }) => {
   const [activeTab, setActiveTab] = useState<'today' | 'previous'>('today');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -34,7 +36,7 @@ export const NspOrderHistory: React.FC<NspOrderHistoryProps> = ({
   };
 
   return (
-    <div className="w-full bg-white flex flex-col min-h-[660px] text-slate-800 select-none rounded-2xl shadow-2xl overflow-hidden border border-slate-200/50">
+    <div className="w-full min-h-screen bg-white flex flex-col text-slate-800 select-none">
       {/* Top Header matching screenshot image_704d4003.png */}
       <header className="h-16 border-b border-slate-100 px-6 sm:px-8 flex items-center justify-between bg-white">
         {/* Brand Logo on Left */}
@@ -45,8 +47,18 @@ export const NspOrderHistory: React.FC<NspOrderHistoryProps> = ({
           </span>
         </div>
 
-        {/* Right Action Icons: Notification bell with green badge and Avatar */}
-        <div className="flex items-center gap-4">
+        {/* Right Action Icons: Role Switcher, Notification bell with green badge and Avatar */}
+        <div className="flex items-center gap-3">
+          {onToggleRole && (
+            <button
+              type="button"
+              onClick={onToggleRole}
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-[#E53935] hover:border-red-200 hover:bg-red-50/50 transition-colors cursor-pointer"
+            >
+              ← Back to Staff Portal
+            </button>
+          )}
+
           <div className="relative">
             <button
               type="button"

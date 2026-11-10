@@ -28,11 +28,9 @@ export const FoodCard: React.FC<FoodCardProps> = ({ item, onClick, compact = fal
           loading="lazy"
         />
 
-        {/* Subtle glassmorphic tag on image corner */}
+        {/* Time remaining badge on image corner */}
         <div className="absolute top-2.5 left-2.5 z-10 px-2 py-0.5 rounded-full bg-black/45 backdrop-blur-md text-[10px] sm:text-[11px] font-medium text-white flex items-center gap-1 border border-white/15 shadow-xs pointer-events-none">
-          <Star className="w-2.5 h-2.5 text-amber-400 fill-amber-400" />
-          <span>4.9</span>
-          <span className="text-white/60">·</span>
+          <Clock className="w-2.5 h-2.5 text-white/90" />
           <span>15-20 min</span>
         </div>
       </div>
@@ -50,11 +48,22 @@ export const FoodCard: React.FC<FoodCardProps> = ({ item, onClick, compact = fal
           </h3>
         </div>
 
-        <div className="flex items-center gap-1 text-slate-400 font-normal truncate mt-0.5">
-          <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
-          <p className={`truncate ${compact ? 'text-[11px]' : 'text-xs'}`}>
-            {item.location}
-          </p>
+        {/* Row with location on the left (truncated with ellipsis if too long) and rating on the far right */}
+        <div className="flex items-center justify-between gap-1.5 mt-0.5">
+          <div className="flex items-center gap-1 text-slate-400 font-normal min-w-0 flex-1">
+            <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+            <p className={`truncate ${compact ? 'text-[11px]' : 'text-xs'}`} title={item.location}>
+              {item.location}
+            </p>
+          </div>
+
+          <div
+            className="flex items-center gap-1 shrink-0 text-slate-700 font-semibold pl-1"
+            title="Rating: 4.9 out of 5"
+          >
+            <Star className="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" />
+            <span className={compact ? 'text-[11px]' : 'text-xs'}>4.9</span>
+          </div>
         </div>
       </div>
     </div>

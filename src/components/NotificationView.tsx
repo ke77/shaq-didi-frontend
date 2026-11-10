@@ -40,31 +40,23 @@ export const NotificationView: React.FC<NotificationViewProps> = ({
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
-    <div className={`w-full flex flex-col items-center select-none ${isStandaloneScreen ? 'py-4' : ''}`}>
-      {/* Page Title Label matching mobile mockup canvas style */}
-      <div className="w-full max-w-[380px] sm:max-w-[400px] mb-2 px-2 flex items-center justify-between">
-        <h2 className="text-xl font-medium text-slate-400 tracking-tight">Notification</h2>
-        {unreadCount > 0 && (
-          <span className="text-xs bg-emerald-500/10 text-emerald-600 px-2 py-0.5 rounded-full font-semibold">
-            {unreadCount} unread
-          </span>
-        )}
-      </div>
-
-      {/* Main Mobile Card matching image_937fe657.png */}
-      <div className="w-full max-w-[380px] sm:max-w-[400px] bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-slate-100 flex flex-col min-h-[640px] relative animate-in fade-in zoom-in-95 duration-200">
+    <div className="w-full min-h-screen bg-white flex flex-col select-none relative">
+      {/* Main Mobile Screen matching image_937fe657.png */}
+      <div className="w-full max-w-md mx-auto flex-1 flex flex-col px-4 pt-4 pb-12">
         {/* Top Header Section */}
-        <div className="px-5 pt-6 pb-4 flex items-center justify-between">
+        <div className="pt-2 pb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             {/* Circular Back Button matching screenshot */}
-            <button
-              type="button"
-              onClick={onBack}
-              className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-slate-900 shadow-md hover:bg-slate-50 active:scale-95 transition-all cursor-pointer border border-slate-100"
-              title="Back"
-            >
-              <ArrowLeft className="w-5 h-5 text-slate-900 stroke-[2.5]" />
-            </button>
+            {onBack && (
+              <button
+                type="button"
+                onClick={onBack}
+                className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-slate-900 shadow-sm hover:bg-slate-50 active:scale-95 transition-all cursor-pointer border border-slate-200/80"
+                title="Back"
+              >
+                <ArrowLeft className="w-5 h-5 text-slate-900 stroke-[2.5]" />
+              </button>
+            )}
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">Notification</h1>
           </div>
 
@@ -80,7 +72,7 @@ export const NotificationView: React.FC<NotificationViewProps> = ({
         </div>
 
         {/* Notifications List matching image_937fe657.png */}
-        <div className="flex-1 px-5 pt-1 pb-4 overflow-y-auto space-y-3">
+        <div className="flex-1 pt-1 pb-4 overflow-y-auto space-y-3">
           {notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 mb-3">
@@ -130,9 +122,6 @@ export const NotificationView: React.FC<NotificationViewProps> = ({
             ))
           )}
         </div>
-
-        {/* Bottom Screen Indicator Bar matching smartphone UI */}
-        <div className="w-32 h-1 bg-slate-300 rounded-full mx-auto mt-auto mb-2 shrink-0" />
       </div>
     </div>
   );
@@ -157,7 +146,7 @@ export const DesktopNotificationView: React.FC<NotificationViewProps> = ({
   });
 
   return (
-    <div className="w-full bg-white flex min-h-[660px] text-slate-800 select-none rounded-2xl shadow-2xl overflow-hidden border border-slate-200/50">
+    <div className="w-full min-h-screen bg-white flex text-slate-800 select-none">
       {/* Left Sidebar matching PS_Home & Order History */}
       <aside className="w-56 shrink-0 border-r border-slate-100 flex flex-col justify-between p-6 bg-white">
         <div>

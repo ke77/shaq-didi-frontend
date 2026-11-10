@@ -89,36 +89,11 @@ export const OrderInfoPage: React.FC<OrderInfoPageProps> = ({
   };
 
   return (
-    <div className={`w-full flex flex-col items-center select-none ${isStandaloneScreen ? 'py-4' : ''}`}>
-      {/* Page Title Label matching screenshot */}
-      <div className="w-full max-w-[380px] sm:max-w-[400px] mb-2 px-2 flex items-center justify-between">
-        <h2 className="text-xl font-medium text-slate-400 tracking-tight">
-          {isConfirmDrawerOpen ? 'Confirm Order' : 'Order Info'}
-        </h2>
-        <div className="flex items-center gap-2">
-          {!amount && (
-            <button
-              type="button"
-              onClick={() => {
-                setAmount('43');
-                setNotes('Buy Waakye 15gh, Fish 20gh, Salad 4gh, Gari 2gh, Wele 6gh, I want more shito.');
-                setSelectedPersonnel('Big Daddy Derrick (NSP - Haatso Lead Runner)');
-                setErrors({});
-              }}
-              className="text-[10px] text-red-400 hover:text-red-300 font-medium cursor-pointer"
-              title="Fill example from mockup"
-            >
-              Fill Mockup Data
-            </button>
-          )}
-          <span className="text-xs text-slate-400">Permanent Staff</span>
-        </div>
-      </div>
-
-      {/* Main Order Card matching screenshot */}
-      <div className="w-full max-w-[380px] sm:max-w-[400px] bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-slate-100 flex flex-col relative animate-in fade-in zoom-in-95 duration-200">
+    <div className="w-full min-h-screen bg-white flex flex-col select-none relative">
+      {/* Main Order Container matching image_664734d7.png */}
+      <div className="w-full max-w-md mx-auto flex-1 flex flex-col relative animate-in fade-in duration-200">
         {/* Top Food Image Banner */}
-        <div className="relative w-full h-56 sm:h-64 bg-slate-900 overflow-hidden">
+        <div className="relative w-full h-64 sm:h-72 bg-slate-900 overflow-hidden">
           <img
             src={item.image}
             alt={item.name}
@@ -177,7 +152,7 @@ export const OrderInfoPage: React.FC<OrderInfoPageProps> = ({
                 />
               </div>
               {/* Quick amount pills */}
-              <div className="flex items-center gap-1.5 mt-2 overflow-x-auto pb-1">
+              <div className="flex items-center gap-1.5 mt-2 overflow-x-auto pb-1 no-scrollbar">
                 <span className="text-[10px] text-slate-400 font-medium shrink-0">Presets:</span>
                 {['20', '30', '43', '60'].map((preset) => (
                   <button
@@ -283,9 +258,6 @@ export const OrderInfoPage: React.FC<OrderInfoPageProps> = ({
               </button>
             </div>
           </form>
-
-          {/* Bottom Screen Indicator Bar matching smartphone UI */}
-          <div className="w-32 h-1 bg-slate-300 rounded-full mx-auto mt-5 mb-1" />
         </div>
 
         {/* Mobile Confirm Order Drawer sliding up from bottom matching image_9f9343e4.png */}

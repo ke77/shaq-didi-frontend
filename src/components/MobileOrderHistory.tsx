@@ -53,13 +53,11 @@ export const MobileOrderHistory: React.FC<MobileOrderHistoryProps> = ({
             <button
               type="button"
               onClick={() => setShowNotifications(!showNotifications)}
-              className="w-9 h-9 rounded-full border border-slate-200/80 flex items-center justify-center text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+              className="w-10 h-10 rounded-full flex items-center justify-center text-slate-700 hover:bg-slate-100/80 active:scale-95 transition-all cursor-pointer"
               title="Notifications"
             >
-              <Bell className="w-4 h-4 text-slate-600" />
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 text-white font-bold text-[9px] flex items-center justify-center border-2 border-white">
-                1
-              </span>
+              <Bell className="w-5 h-5 text-slate-700" />
+              <span className="absolute 1.5 top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white"></span>
             </button>
 
             {showNotifications && (

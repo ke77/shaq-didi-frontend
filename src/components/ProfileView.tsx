@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, LogOut, Home, History, User } from 'lucide-react';
+import { ArrowLeft, LogOut, Home, History, User, ArrowLeftRight } from 'lucide-react';
 
 interface ProfileViewProps {
   onBack?: () => void;
@@ -8,6 +8,7 @@ interface ProfileViewProps {
   activeNavTab?: 'home' | 'history' | 'profile';
   onNavTabChange?: (tab: 'home' | 'history' | 'profile') => void;
   orderCount?: number;
+  onToggleRole?: () => void;
 }
 
 export const ProfileView: React.FC<ProfileViewProps> = ({
@@ -17,18 +18,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   activeNavTab,
   onNavTabChange,
   orderCount = 0,
+  onToggleRole,
 }) => {
   return (
-    <div className={`w-full flex flex-col items-center select-none ${isStandaloneScreen ? 'py-4' : ''}`}>
-      {/* Title above screen on outer canvas matching screenshot */}
-      <div className="w-full max-w-[360px] sm:max-w-[380px] mb-2 px-2 flex items-center justify-between">
-        <h2 className="text-xl font-medium text-slate-400 tracking-tight">Profile</h2>
-      </div>
-
-      {/* Main Profile Card matching image_5e001cd4.png */}
-      <div className="w-full max-w-[360px] sm:max-w-[380px] bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-slate-100 flex flex-col min-h-[580px] relative animate-in fade-in zoom-in-95 duration-200 p-6 pb-20">
+    <div className="w-full min-h-screen bg-white flex flex-col select-none relative">
+      {/* Main Profile Content matching image_5e001cd4.png */}
+      <div className="w-full max-w-md mx-auto flex-1 flex flex-col p-6 pb-24">
         {/* Top Bar: Circular Back Button & Profile Title */}
-        <div className="flex items-center gap-3.5 mb-8 pt-1">
+        <div className="flex items-center gap-3.5 mb-8 pt-2">
           {onBack && (
             <button
               type="button"
@@ -39,7 +36,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               <ArrowLeft className="w-5 h-5 text-slate-800 stroke-[2.5]" />
             </button>
           )}
-          <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
             Profile
           </h1>
         </div>
@@ -75,10 +72,22 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             <LogOut className="w-5 h-5 text-slate-700 group-hover:text-[#E53935] transition-colors shrink-0" />
             <span>Logout</span>
           </button>
-        </div>
 
-        {/* Bottom Smartphone Indicator Bar matching mockup */}
-        <div className="w-32 h-1 bg-slate-300 rounded-full mx-auto mt-auto mb-1" />
+          {onToggleRole && (
+            <button
+              type="button"
+              onClick={onToggleRole}
+              className="mt-6 flex items-center justify-between p-3.5 rounded-xl border border-dashed border-slate-200 bg-slate-50 hover:bg-red-50/50 hover:border-red-200 text-slate-700 hover:text-[#E53935] font-semibold text-xs transition-all cursor-pointer w-full text-left"
+            >
+              <div className="flex items-center gap-2.5">
+                <ArrowLeftRight className="w-4 h-4 text-[#E53935]" />
+                <span>NSP Dispatch Portal View</span>
+              </div>
+              <span className="text-[10px] text-slate-400">Switch →</span>
+            </button>
+          )}
+        </div>
+      </div>
 
         {/* Optional Mobile Bottom Navigation Bar when embedded in mobile app */}
         {onNavTabChange && activeNavTab && (
@@ -128,6 +137,5 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           </nav>
         )}
       </div>
-    </div>
-  );
+    );
 };

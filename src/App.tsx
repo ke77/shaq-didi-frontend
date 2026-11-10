@@ -5,7 +5,6 @@ import { HeroSection } from './components/HeroSection';
 import { SignUpForm } from './components/SignUpForm';
 import { SignInForm } from './components/SignInForm';
 import { SuccessModal } from './components/SuccessModal';
-import { PreviewNav, ViewMode, ActiveAppScreen } from './components/PreviewNav';
 import { DesktopHome } from './components/DesktopHome';
 import { MobileHome } from './components/MobileHome';
 import { OrderRecord } from './components/OrderHistoryView';
@@ -16,12 +15,11 @@ import { PermanentStaffOrderHistory } from './components/PermanentStaffOrderHist
 import { MobileOrderHistory } from './components/MobileOrderHistory';
 import { NspOrderHistory } from './components/NspOrderHistory';
 import { NotificationView, DesktopNotificationView } from './components/NotificationView';
-import { PhoneFrame } from './components/PhoneFrame';
 import { INITIAL_NOTIFICATIONS, AppNotification } from './data/notifications';
 import { FOOD_ITEMS, FoodJointItem } from './data/foodJoints';
 import { SignUpFormData } from './types';
 import { api } from './services/api';
-import { CheckCircle2, X } from 'lucide-react';
+import { CheckCircle2, X, ArrowLeftRight, UserCheck } from 'lucide-react';
 
 const INITIAL_ORDERS: OrderRecord[] = [
   {
@@ -46,21 +44,31 @@ const INITIAL_ORDERS: OrderRecord[] = [
   },
 ];
 
+export type UserRole = 'permanent_staff' | 'nsp';
+
 export default function App() {
-  const [activeScreen, setActiveScreen] = useState<ActiveAppScreen>('home');
-  const [viewMode, setViewMode] = useState<ViewMode>('responsive');
+  // Authentication & Top-level View
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [authView, setAuthView] = useState<'signin' | 'signup'>('signin');
+  const [signUpData, setSignUpData] = useState<SignUpFormData | null>(null);
 
-  // Homepage navigation tabs
+  // Active Role: Permanent Staff or NSP Dispatcher
+  const [userRole, setUserRole] = useState<UserRole>('permanent_staff');
+
+  // Desktop Navigation: 'home' | 'history' | 'notifications'
   const [desktopNavTab, setDesktopNavTab] = useState<'home' | 'history' | 'notifications'>('home');
-  const [mobileNavTab, setMobileNavTab] = useState<'home' | 'history' | 'profile'>('home');
 
-  // Food ordering state
+  // Mobile Navigation: Tab ('home' | 'history' | 'profile') and overlay screens ('order-info' | 'notifications')
+  const [mobileNavTab, setMobileNavTab] = useState<'home' | 'history' | 'profile'>('home');
+  const [mobileOverlayScreen, setMobileOverlayScreen] = useState<'none' | 'order-info' | 'notifications'>('none');
+
+  // Food Ordering State
   const [selectedFoodItem, setSelectedFoodItem] = useState<FoodJointItem>(FOOD_ITEMS[0]);
   const [desktopModalOpen, setDesktopModalOpen] = useState(false);
   const [orders, setOrders] = useState<OrderRecord[]>(INITIAL_ORDERS);
   const [orderToast, setOrderToast] = useState<string | null>(null);
 
-  // Notifications state matching image_937fe657.png
+  // Notifications State
   const [notifications, setNotifications] = useState<AppNotification[]>(INITIAL_NOTIFICATIONS);
   const unreadNotificationCount = notifications.filter((n) => !n.read).length;
 
@@ -81,25 +89,24 @@ export default function App() {
       prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n))
     );
     if (notif.orderId) {
-      setActiveScreen('order-history-ps');
+      setDesktopNavTab('history');
+      setMobileNavTab('history');
+      setMobileOverlayScreen('none');
     }
   };
 
-  // Sign up state
-  const [signUpData, setSignUpData] = useState<SignUpFormData | null>(null);
-
-  // Desktop click on food card
+  // Food Selection handlers
   const handleDesktopSelectFood = (item: FoodJointItem) => {
     setSelectedFoodItem(item);
     setDesktopModalOpen(true);
   };
 
-  // Mobile click on food card
   const handleMobileSelectFood = (item: FoodJointItem) => {
     setSelectedFoodItem(item);
-    setActiveScreen('order-info');
+    setMobileOverlayScreen('order-info');
   };
 
+  // Place Order handler
   const handlePlaceOrderInfo = async (data: OrderInfoSubmitData) => {
     const newRecord: OrderRecord = {
       id: `ord-${1042 + orders.length}`,
@@ -112,7 +119,7 @@ export default function App() {
       status: 'Preparing',
     };
 
-    // Attempt backend sync with Laravel API
+    // Sync with standalone Laravel API if configured
     try {
       await api.createOrder({
         food_item_id: data.item.id,
@@ -126,7 +133,7 @@ export default function App() {
 
     setOrders((prev) => [newRecord, ...prev]);
 
-    // Push live notification
+    // Push real-time notification
     const orderNotif: AppNotification = {
       id: `notif-${Date.now()}`,
       type: 'order_assigned',
@@ -144,10 +151,12 @@ export default function App() {
     setTimeout(() => {
       setOrderToast(null);
     }, 5000);
+
     setDesktopModalOpen(false);
-    setActiveScreen('home');
+    setMobileOverlayScreen('none');
   };
 
+  // Order Status update for NSP role
   const handleUpdateOrderStatus = async (
     orderId: string,
     status: 'Preparing' | 'Dispatched' | 'Delivered'
@@ -155,14 +164,13 @@ export default function App() {
     try {
       await api.updateOrderStatus(orderId, status);
     } catch {
-      // Graceful offline fallback
+      // Offline fallback
     }
 
     setOrders((prev) =>
       prev.map((o) => (o.id === orderId ? { ...o, status } : o))
     );
 
-    // Push notification for status change
     const statusNotif: AppNotification = {
       id: `notif-${Date.now()}`,
       type: status === 'Delivered' ? 'order_completed' : 'order_dispatched',
@@ -184,8 +192,8 @@ export default function App() {
     setOrders((prev) => prev.filter((o) => o.id !== orderId));
     setOrderToast(`Order cancelled.`);
     setTimeout(() => {
-      setOrderToast(null);
-    }, 3000);
+      setOrderToast(null), 3000;
+    });
   };
 
   const handleLogout = async () => {
@@ -194,35 +202,83 @@ export default function App() {
     } catch {
       // Ignore
     }
-    setActiveScreen('signin');
+    setIsAuthenticated(false);
+    setAuthView('signin');
   };
 
   const handleReorder = (item: FoodJointItem) => {
     setSelectedFoodItem(item);
-    if (viewMode === 'mobile') {
-      setActiveScreen('order-info');
-    } else {
-      setDesktopModalOpen(true);
-    }
+    // On desktop opens modal, on mobile opens order info
+    setDesktopModalOpen(true);
+    setMobileOverlayScreen('order-info');
   };
 
-  return (
-    <div className="min-h-screen bg-slate-900/95 flex flex-col font-sans">
-      {/* Top Preview Switcher Bar */}
-      <PreviewNav
-        currentMode={viewMode}
-        onModeChange={setViewMode}
-        activeScreen={activeScreen}
-        onScreenChange={(screen) => {
-          setActiveScreen(screen);
-          if (screen === 'order-info') {
-            setDesktopModalOpen(true);
-          }
-        }}
-        unreadNotificationCount={unreadNotificationCount}
-      />
+  // Switch between Permanent Staff and NSP role view
+  const toggleRole = () => {
+    setUserRole((prev) => (prev === 'permanent_staff' ? 'nsp' : 'permanent_staff'));
+  };
 
-      {/* Floating Order Success Toast */}
+  // =========================================================================
+  // VIEW: AUTHENTICATION (Sign In / Sign Up)
+  // =========================================================================
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-5xl bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+          <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[580px]">
+            <div className="h-full">
+              <HeroSection
+                onSignInClick={() => setAuthView('signin')}
+                showSignInButton={authView === 'signup'}
+              />
+            </div>
+
+            <div className="flex items-center justify-center p-6 bg-white">
+              {authView === 'signin' ? (
+                <SignInForm
+                  onSuccess={async (data) => {
+                    try {
+                      await api.login({ email: data.email, password: 'password' });
+                    } catch {
+                      // Fallback
+                    }
+                    setIsAuthenticated(true);
+                  }}
+                  onSignUpClick={() => setAuthView('signup')}
+                />
+              ) : (
+                <SignUpForm
+                  onSuccess={async (data) => {
+                    setSignUpData(data);
+                    try {
+                      await api.register(data);
+                    } catch {
+                      // Fallback
+                    }
+                    setIsAuthenticated(true);
+                  }}
+                  onSignInClick={() => setAuthView('signin')}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+
+        <SuccessModal
+          data={signUpData}
+          onClose={() => setSignUpData(null)}
+          onReset={() => setSignUpData(null)}
+        />
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // VIEW: MAIN APPLICATION (Pure Responsive Layout, No Device Frames)
+  // =========================================================================
+  return (
+    <div className="min-h-screen bg-[#F8F9FA] text-slate-800 font-sans flex flex-col">
+      {/* Toast Notification */}
       {orderToast && (
         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 bg-slate-900 text-white text-xs px-4 py-3 rounded-xl shadow-2xl border border-emerald-500/50 animate-in fade-in slide-in-from-bottom-3 duration-200">
           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -236,452 +292,13 @@ export default function App() {
         </div>
       )}
 
-      {/* Main Preview Container */}
-      <main className="flex-1 flex flex-col items-center justify-center p-2 sm:p-5 lg:p-6 w-full">
-        {/* =========================================================================
-            SCREEN 1: HOMEPAGE (PS_Home Desktop & PWA Mobile App)
-           ========================================================================= */}
-        {activeScreen === 'home' && (
-          <div className="w-full flex justify-center items-center my-auto">
-            {/* VIEW MODE: Responsive */}
-            {viewMode === 'responsive' && (
-              <div className="w-full max-w-6xl">
-                {/* Desktop view on lg+ */}
-                <div className="hidden lg:block w-full bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200/50 relative">
-                  {desktopNavTab === 'home' ? (
-                    <DesktopHome
-                      onLogout={handleLogout}
-                      onSelectFood={handleDesktopSelectFood}
-                      orderCount={orders.length}
-                      activeNavTab={desktopNavTab}
-                      onNavTabChange={setDesktopNavTab}
-                      onOpenNotifications={() => setActiveScreen('notifications')}
-                      unreadNotificationCount={unreadNotificationCount}
-                    />
-                  ) : (
-                    <PermanentStaffOrderHistory
-                      orders={orders}
-                      onGoHome={() => setDesktopNavTab('home')}
-                      onLogout={handleLogout}
-                      onReorder={handleReorder}
-                      onCancelOrder={handleCancelOrder}
-                      onOpenNotifications={() => setActiveScreen('notifications')}
-                      unreadNotificationCount={unreadNotificationCount}
-                    />
-                  )}
-
-                  {/* Desktop Order Modal when triggered on Desktop */}
-                  <DesktopOrderModal
-                    isOpen={desktopModalOpen}
-                    item={selectedFoodItem}
-                    onClose={() => setDesktopModalOpen(false)}
-                    onSubmitOrder={handlePlaceOrderInfo}
-                  />
-                </div>
-
-                {/* Mobile PWA view on small screens */}
-                <div className="block lg:hidden max-w-md mx-auto w-full bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200/50">
-                  {mobileNavTab === 'home' && (
-                    <MobileHome
-                      onSelectFood={handleMobileSelectFood}
-                      orderCount={orders.length}
-                      activeTab={mobileNavTab}
-                      onTabChange={setMobileNavTab}
-                      onLogout={handleLogout}
-                      onOpenNotifications={() => setActiveScreen('notifications')}
-                      unreadNotificationCount={unreadNotificationCount}
-                    />
-                  )}
-                  {mobileNavTab === 'history' && (
-                    <MobileOrderHistory
-                      orders={orders}
-                      orderCount={orders.length}
-                      activeNavTab={mobileNavTab}
-                      onNavTabChange={setMobileNavTab}
-                      onGoHome={() => setMobileNavTab('home')}
-                      onReorder={handleReorder}
-                      onCancelOrder={handleCancelOrder}
-                    />
-                  )}
-                  {mobileNavTab === 'profile' && (
-                    <ProfileView
-                      onBack={() => setMobileNavTab('home')}
-                      onLogout={handleLogout}
-                      activeNavTab={mobileNavTab}
-                      onNavTabChange={setMobileNavTab}
-                      orderCount={orders.length}
-                    />
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* VIEW MODE: Force Desktop View */}
-            {viewMode === 'desktop' && (
-              <div className="w-full max-w-6xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200/50 relative">
-                {desktopNavTab === 'home' ? (
-                  <DesktopHome
-                    onLogout={handleLogout}
-                    onSelectFood={handleDesktopSelectFood}
-                    orderCount={orders.length}
-                    activeNavTab={desktopNavTab}
-                    onNavTabChange={setDesktopNavTab}
-                    onOpenNotifications={() => setActiveScreen('notifications')}
-                    unreadNotificationCount={unreadNotificationCount}
-                  />
-                ) : (
-                  <PermanentStaffOrderHistory
-                    orders={orders}
-                    onGoHome={() => setDesktopNavTab('home')}
-                    onLogout={handleLogout}
-                    onReorder={handleReorder}
-                    onCancelOrder={handleCancelOrder}
-                    onOpenNotifications={() => setActiveScreen('notifications')}
-                    unreadNotificationCount={unreadNotificationCount}
-                  />
-                )}
-
-                {/* Desktop Order Modal */}
-                <DesktopOrderModal
-                  isOpen={desktopModalOpen}
-                  item={selectedFoodItem}
-                  onClose={() => setDesktopModalOpen(false)}
-                  onSubmitOrder={handlePlaceOrderInfo}
-                />
-              </div>
-            )}
-
-            {/* VIEW MODE: Force Mobile PWA View */}
-            {viewMode === 'mobile' && (
-              <div className="py-2">
-                <PhoneFrame>
-                  {mobileNavTab === 'home' && (
-                    <MobileHome
-                      onSelectFood={handleMobileSelectFood}
-                      orderCount={orders.length}
-                      activeTab={mobileNavTab}
-                      onTabChange={setMobileNavTab}
-                      onLogout={handleLogout}
-                      onOpenNotifications={() => setActiveScreen('notifications')}
-                      unreadNotificationCount={unreadNotificationCount}
-                    />
-                  )}
-                  {mobileNavTab === 'history' && (
-                    <MobileOrderHistory
-                      orders={orders}
-                      orderCount={orders.length}
-                      activeNavTab={mobileNavTab}
-                      onNavTabChange={setMobileNavTab}
-                      onGoHome={() => setMobileNavTab('home')}
-                      onReorder={handleReorder}
-                      onCancelOrder={handleCancelOrder}
-                    />
-                  )}
-                  {mobileNavTab === 'profile' && (
-                    <ProfileView
-                      onBack={() => setMobileNavTab('home')}
-                      onLogout={handleLogout}
-                      activeNavTab={mobileNavTab}
-                      onNavTabChange={setMobileNavTab}
-                      orderCount={orders.length}
-                    />
-                  )}
-                </PhoneFrame>
-                <p className="mt-3 text-center text-xs text-slate-400 font-medium tracking-wide">
-                  ShaQ DIDI PWA Mobile Experience
-                </p>
-              </div>
-            )}
-
-            {/* VIEW MODE: Side-by-Side (Desktop PS_Home + Mobile Services PWA) */}
-            {viewMode === 'side-by-side' && (
-              <div className="w-full max-w-7xl flex flex-col xl:flex-row items-center justify-center gap-8 xl:gap-10 my-auto py-4">
-                {/* Desktop Mockup Section */}
-                <div className="flex-1 w-full max-w-3xl flex flex-col items-start relative">
-                  <div className="mb-2 text-sm font-semibold tracking-wide text-slate-300 flex items-center gap-2">
-                    <span>PS _Home</span>
-                    <span className="text-slate-500 font-normal text-xs">(Desktop Portal)</span>
-                  </div>
-                  <div className="w-full bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-700/50 relative">
-                    <DesktopHome
-                      onLogout={handleLogout}
-                      onSelectFood={handleDesktopSelectFood}
-                      orderCount={orders.length}
-                      activeNavTab={desktopNavTab}
-                      onNavTabChange={setDesktopNavTab}
-                      onOpenNotifications={() => setActiveScreen('notifications')}
-                      unreadNotificationCount={unreadNotificationCount}
-                    />
-                    <DesktopOrderModal
-                      isOpen={desktopModalOpen}
-                      item={selectedFoodItem}
-                      onClose={() => setDesktopModalOpen(false)}
-                      onSubmitOrder={handlePlaceOrderInfo}
-                    />
-                  </div>
-                </div>
-
-                {/* Mobile Services Mockup Section */}
-                <div className="flex flex-col items-center">
-                  <div className="mb-2 self-start text-sm font-semibold tracking-wide text-slate-300 flex items-center gap-2">
-                    <span>Mobile PWA App</span>
-                    <span className="text-slate-500 font-normal text-xs">(Haatso Station PWA)</span>
-                  </div>
-                  <PhoneFrame widthClass="w-[320px] sm:w-[350px]">
-                    {mobileNavTab === 'home' && (
-                      <MobileHome
-                        onSelectFood={handleMobileSelectFood}
-                        orderCount={orders.length}
-                        activeTab={mobileNavTab}
-                        onTabChange={setMobileNavTab}
-                        onLogout={handleLogout}
-                        onOpenNotifications={() => setActiveScreen('notifications')}
-                        unreadNotificationCount={unreadNotificationCount}
-                      />
-                    )}
-                    {mobileNavTab === 'history' && (
-                      <MobileOrderHistory
-                        orders={orders}
-                        orderCount={orders.length}
-                        activeNavTab={mobileNavTab}
-                        onNavTabChange={setMobileNavTab}
-                        onGoHome={() => setMobileNavTab('home')}
-                        onReorder={handleReorder}
-                        onCancelOrder={handleCancelOrder}
-                      />
-                    )}
-                    {mobileNavTab === 'profile' && (
-                      <ProfileView
-                        onBack={() => setMobileNavTab('home')}
-                        onLogout={handleLogout}
-                        activeNavTab={mobileNavTab}
-                        onNavTabChange={setMobileNavTab}
-                        orderCount={orders.length}
-                      />
-                    )}
-                  </PhoneFrame>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* =========================================================================
-            SCREEN 2: ORDER SCREEN (Big Screen Modal / Mobile Screen matching design)
-           ========================================================================= */}
-        {activeScreen === 'order-info' && (
-          <div className="w-full flex justify-center items-center my-auto py-2">
-            {/* View Mode: Mobile screen */}
-            {viewMode === 'mobile' ? (
-              <div className="py-2">
-                <PhoneFrame>
-                  <OrderInfoPage
-                    item={selectedFoodItem}
-                    onBack={() => setActiveScreen('home')}
-                    onSubmitOrder={handlePlaceOrderInfo}
-                    isStandaloneScreen={false}
-                  />
-                </PhoneFrame>
-              </div>
-            ) : viewMode === 'side-by-side' ? (
-              /* View Mode: Side-by-Side (Desktop with Modal + Mobile Screen) */
-              <div className="w-full max-w-7xl flex flex-col xl:flex-row items-center justify-center gap-8 xl:gap-12 my-auto py-4">
-                <div className="flex-1 w-full max-w-3xl flex flex-col items-start relative">
-                  <h2 className="text-2xl font-medium text-slate-300 tracking-tight mb-2 pl-1">
-                    Order
-                  </h2>
-                  <div className="w-full bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-700/50 relative">
-                    <DesktopHome
-                      onLogout={handleLogout}
-                      onSelectFood={handleDesktopSelectFood}
-                      orderCount={orders.length}
-                      activeNavTab={desktopNavTab}
-                      onNavTabChange={setDesktopNavTab}
-                    />
-                    <DesktopOrderModal
-                      isOpen={true}
-                      item={selectedFoodItem}
-                      onClose={() => setActiveScreen('home')}
-                      onSubmitOrder={handlePlaceOrderInfo}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex flex-col items-center">
-                  <div className="w-full mb-1 flex items-center justify-between">
-                    <h2 className="text-base font-medium text-slate-400 tracking-tight">Order Info (Mobile)</h2>
-                  </div>
-                  <PhoneFrame widthClass="w-[320px] sm:w-[350px]">
-                    <OrderInfoPage
-                      item={selectedFoodItem}
-                      onBack={() => setActiveScreen('home')}
-                      onSubmitOrder={handlePlaceOrderInfo}
-                      isStandaloneScreen={false}
-                    />
-                  </PhoneFrame>
-                </div>
-              </div>
-            ) : (
-              /* Big screen matching screenshot image_b0a6faf9.png */
-              <div className="w-full max-w-6xl my-auto">
-                <div className="hidden lg:block w-full">
-                  <h2 className="text-2xl font-medium text-slate-300 tracking-tight mb-3 pl-1">
-                    Order
-                  </h2>
-                  <div className="w-full bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200/50 relative">
-                    <DesktopHome
-                      onLogout={handleLogout}
-                      onSelectFood={handleDesktopSelectFood}
-                      orderCount={orders.length}
-                      activeNavTab={desktopNavTab}
-                      onNavTabChange={setDesktopNavTab}
-                    />
-                    <DesktopOrderModal
-                      isOpen={true}
-                      item={selectedFoodItem}
-                      onClose={() => setActiveScreen('home')}
-                      onSubmitOrder={handlePlaceOrderInfo}
-                    />
-                  </div>
-                </div>
-
-                <div className="block lg:hidden max-w-md mx-auto w-full">
-                  <OrderInfoPage
-                    item={selectedFoodItem}
-                    onBack={() => setActiveScreen('home')}
-                    onSubmitOrder={handlePlaceOrderInfo}
-                    isStandaloneScreen={true}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* =========================================================================
-            SCREEN 3: ORDER HISTORY FOR PERMANENT STAFF (matching image_373135d4.png)
-           ========================================================================= */}
-        {activeScreen === 'order-history-ps' && (
-          <div className="w-full max-w-6xl my-auto py-2">
-            {/* View Mode: Mobile */}
-            {viewMode === 'mobile' ? (
-              <div className="py-2">
-                <div className="w-full max-w-[360px] mx-auto mb-2 px-1 flex items-center justify-between">
-                  <h2 className="text-xl font-medium text-slate-400 tracking-tight">
-                    Order History
-                  </h2>
-                  <button
-                    type="button"
-                    onClick={() => setOrders(orders.length > 0 ? [] : INITIAL_ORDERS)}
-                    className="text-[11px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 cursor-pointer"
-                  >
-                    {orders.length > 0 ? 'Empty State' : 'Sample Orders'}
-                  </button>
-                </div>
-                <PhoneFrame>
-                  <MobileOrderHistory
-                    orders={orders}
-                    orderCount={orders.length}
-                    activeNavTab="history"
-                    onNavTabChange={(tab) => {
-                      if (tab === 'home') setActiveScreen('home');
-                      if (tab === 'profile') setActiveScreen('profile');
-                    }}
-                    onGoHome={() => setActiveScreen('home')}
-                    onReorder={handleReorder}
-                    onCancelOrder={handleCancelOrder}
-                  />
-                </PhoneFrame>
-              </div>
-            ) : (
-              /* Desktop and Responsive View */
-              <div>
-                <div className="mb-2 pl-1 flex items-center justify-between">
-                  <h2 className="text-2xl font-medium text-slate-300 tracking-tight">
-                    Order History_Empty
-                  </h2>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setOrders([])}
-                      className="text-xs px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer"
-                      title="Clear all orders to test the empty state"
-                    >
-                      Simulate Empty State
-                    </button>
-                    {orders.length === 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setOrders(INITIAL_ORDERS)}
-                        className="text-xs px-2.5 py-1 rounded bg-red-900/40 text-red-300 hover:bg-red-900/60 cursor-pointer"
-                      >
-                        Restore Sample Orders
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Desktop View on lg+ */}
-                <div className="hidden lg:block">
-                  <PermanentStaffOrderHistory
-                    orders={orders}
-                    onGoHome={() => setActiveScreen('home')}
-                    onLogout={handleLogout}
-                    onReorder={handleReorder}
-                    onCancelOrder={handleCancelOrder}
-                  />
-                </div>
-
-                {/* Mobile Fallback on small viewports */}
-                <div className="block lg:hidden max-w-md mx-auto w-full bg-white rounded-2xl shadow-2xl overflow-hidden">
-                  <MobileOrderHistory
-                    orders={orders}
-                    orderCount={orders.length}
-                    activeNavTab="history"
-                    onNavTabChange={(tab) => {
-                      if (tab === 'home') setActiveScreen('home');
-                      if (tab === 'profile') setActiveScreen('profile');
-                    }}
-                    onGoHome={() => setActiveScreen('home')}
-                    onReorder={handleReorder}
-                    onCancelOrder={handleCancelOrder}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* =========================================================================
-            SCREEN 4: ORDER HISTORY FOR NSPs (matching image_704d4003.png)
-           ========================================================================= */}
-        {activeScreen === 'order-history-nsp' && (
-          <div className="w-full max-w-6xl my-auto py-2">
-            <div className="mb-2 pl-1 flex items-center justify-between">
-              <h2 className="text-2xl font-medium text-slate-300 tracking-tight">
-                Empty (NSP Orders)
-              </h2>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setOrders([])}
-                  className="text-xs px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer"
-                  title="Clear all orders to test the empty state"
-                >
-                  Simulate Empty State
-                </button>
-                {orders.length === 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setOrders(INITIAL_ORDERS)}
-                    className="text-xs px-2.5 py-1 rounded bg-red-900/40 text-red-300 hover:bg-red-900/60 cursor-pointer"
-                  >
-                    Restore Sample Orders
-                  </button>
-                )}
-              </div>
-            </div>
-
+      {/* =====================================================================
+          DESKTOP VIEW (Visible on lg and larger screens)
+         ===================================================================== */}
+      <div className="hidden lg:flex flex-1 w-full">
+        {userRole === 'nsp' ? (
+          /* NSP Dispatch Portal matching image_704d4003.png */
+          <div className="w-full flex-1">
             <NspOrderHistory
               orders={orders}
               onUpdateStatus={handleUpdateOrderStatus}
@@ -689,178 +306,133 @@ export default function App() {
                 setOrderToast('Synced assigned orders with dispatch server.');
                 setTimeout(() => setOrderToast(null), 3000);
               }}
+              onToggleRole={toggleRole}
+            />
+          </div>
+        ) : (
+          /* Permanent Staff Desktop Portal matching PS_Home / Order History / Notifications */
+          <div className="w-full flex-1 relative">
+            {desktopNavTab === 'home' && (
+              <DesktopHome
+                onLogout={handleLogout}
+                onSelectFood={handleDesktopSelectFood}
+                orderCount={orders.length}
+                activeNavTab={desktopNavTab}
+                onNavTabChange={setDesktopNavTab}
+                onOpenNotifications={() => setDesktopNavTab('notifications')}
+                unreadNotificationCount={unreadNotificationCount}
+                onToggleRole={toggleRole}
+              />
+            )}
+
+            {desktopNavTab === 'history' && (
+              <PermanentStaffOrderHistory
+                orders={orders}
+                onGoHome={() => setDesktopNavTab('home')}
+                onLogout={handleLogout}
+                onReorder={handleReorder}
+                onCancelOrder={handleCancelOrder}
+                onOpenNotifications={() => setDesktopNavTab('notifications')}
+                unreadNotificationCount={unreadNotificationCount}
+              />
+            )}
+
+            {desktopNavTab === 'notifications' && (
+              <DesktopNotificationView
+                notifications={notifications}
+                onGoHome={() => setDesktopNavTab('home')}
+                onGoOrderHistory={() => setDesktopNavTab('history')}
+                onLogout={handleLogout}
+                onMarkAllAsRead={handleMarkAllNotificationsRead}
+                onClearAll={handleClearAllNotifications}
+                onNotificationClick={handleNotificationClick}
+              />
+            )}
+
+            {/* Desktop Order Modal matching image_b0a6faf9.png */}
+            <DesktopOrderModal
+              isOpen={desktopModalOpen}
+              item={selectedFoodItem}
+              onClose={() => setDesktopModalOpen(false)}
+              onSubmitOrder={handlePlaceOrderInfo}
             />
           </div>
         )}
+      </div>
 
-        {/* =========================================================================
-            SCREEN 5: PROFILE PAGE (matching image_5e001cd4.png)
-           ========================================================================= */}
-        {activeScreen === 'profile' && (
-          <div className="w-full flex justify-center items-center my-auto py-4">
-            <ProfileView
-              onBack={() => setActiveScreen('home')}
-              onLogout={handleLogout}
-              isStandaloneScreen={true}
-              activeNavTab="profile"
-              onNavTabChange={(tab) => {
-                if (tab === 'home') setActiveScreen('home');
-                if (tab === 'history') setActiveScreen('order-history-ps');
+      {/* =====================================================================
+          MOBILE VIEW (Visible on small & medium screens < 1024px)
+         ===================================================================== */}
+      <div className="flex lg:hidden flex-1 w-full bg-white flex-col">
+        {/* Full-screen Overlay 1: Order Info Page matching image_664734d7.png */}
+        {mobileOverlayScreen === 'order-info' ? (
+          <OrderInfoPage
+            item={selectedFoodItem}
+            onBack={() => setMobileOverlayScreen('none')}
+            onSubmitOrder={handlePlaceOrderInfo}
+          />
+        ) : mobileOverlayScreen === 'notifications' ? (
+          /* Full-screen Overlay 2: Notifications Page matching image_937fe657.png */
+          <NotificationView
+            notifications={notifications}
+            onBack={() => setMobileOverlayScreen('none')}
+            onMarkAllAsRead={handleMarkAllNotificationsRead}
+            onNotificationClick={handleNotificationClick}
+          />
+        ) : userRole === 'nsp' ? (
+          /* Mobile NSP Assigned Orders */
+          <div className="flex-1 pb-16">
+            <NspOrderHistory
+              orders={orders}
+              onUpdateStatus={handleUpdateOrderStatus}
+              onRefresh={() => {
+                setOrderToast('Synced assigned orders.');
+                setTimeout(() => setOrderToast(null), 3000);
               }}
-              orderCount={orders.length}
+              onToggleRole={toggleRole}
             />
           </div>
-        )}
+        ) : (
+          /* Mobile Permanent Staff Screens with Bottom Navigation */
+          <div className="flex-1 flex flex-col">
+            {mobileNavTab === 'home' && (
+              <MobileHome
+                onSelectFood={handleMobileSelectFood}
+                orderCount={orders.length}
+                activeTab={mobileNavTab}
+                onTabChange={setMobileNavTab}
+                onLogout={handleLogout}
+                onOpenNotifications={() => setMobileOverlayScreen('notifications')}
+                unreadNotificationCount={unreadNotificationCount}
+                onToggleRole={toggleRole}
+              />
+            )}
 
-        {/* =========================================================================
-            SCREEN 6: NOTIFICATIONS (matching image_937fe657.png on mobile & big screens)
-           ========================================================================= */}
-        {activeScreen === 'notifications' && (
-          <div className="w-full flex justify-center items-center my-auto py-2">
-            {/* View Mode: Mobile screen */}
-            {viewMode === 'mobile' ? (
-              <div className="py-2">
-                <PhoneFrame>
-                  <NotificationView
-                    notifications={notifications}
-                    onBack={() => setActiveScreen('home')}
-                    onMarkAllAsRead={handleMarkAllNotificationsRead}
-                    onNotificationClick={handleNotificationClick}
-                    isStandaloneScreen={false}
-                  />
-                </PhoneFrame>
-              </div>
-            ) : viewMode === 'side-by-side' ? (
-              /* View Mode: Side-by-Side (Desktop Notifications + Mobile Screen) */
-              <div className="w-full max-w-7xl flex flex-col xl:flex-row items-center justify-center gap-8 xl:gap-12 my-auto py-4">
-                <div className="flex-1 w-full max-w-3xl flex flex-col items-start relative">
-                  <h2 className="text-2xl font-medium text-slate-300 tracking-tight mb-2 pl-1">
-                    Notifications (Desktop)
-                  </h2>
-                  <DesktopNotificationView
-                    notifications={notifications}
-                    onGoHome={() => setActiveScreen('home')}
-                    onGoOrderHistory={() => setActiveScreen('order-history-ps')}
-                    onLogout={handleLogout}
-                    onMarkAllAsRead={handleMarkAllNotificationsRead}
-                    onClearAll={handleClearAllNotifications}
-                    onNotificationClick={handleNotificationClick}
-                  />
-                </div>
+            {mobileNavTab === 'history' && (
+              <MobileOrderHistory
+                orders={orders}
+                orderCount={orders.length}
+                activeNavTab={mobileNavTab}
+                onNavTabChange={setMobileNavTab}
+                onGoHome={() => setMobileNavTab('home')}
+                onReorder={handleReorder}
+                onCancelOrder={handleCancelOrder}
+              />
+            )}
 
-                <div className="flex flex-col items-center">
-                  <div className="w-full mb-1 flex items-center justify-between">
-                    <h2 className="text-base font-medium text-slate-400 tracking-tight">Notification (Mobile)</h2>
-                  </div>
-                  <PhoneFrame widthClass="w-[320px] sm:w-[350px]">
-                    <NotificationView
-                      notifications={notifications}
-                      onBack={() => setActiveScreen('home')}
-                      onMarkAllAsRead={handleMarkAllNotificationsRead}
-                      onNotificationClick={handleNotificationClick}
-                      isStandaloneScreen={false}
-                    />
-                  </PhoneFrame>
-                </div>
-              </div>
-            ) : (
-              /* Big screen matching screenshot inspo */
-              <div className="w-full max-w-6xl my-auto">
-                <div className="hidden lg:block w-full">
-                  <div className="mb-2 pl-1 flex items-center justify-between">
-                    <h2 className="text-2xl font-medium text-slate-300 tracking-tight">
-                      Notifications
-                    </h2>
-                    <button
-                      type="button"
-                      onClick={() => setNotifications(notifications.length > 0 ? [] : INITIAL_NOTIFICATIONS)}
-                      className="text-xs px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer"
-                    >
-                      {notifications.length > 0 ? 'Simulate Empty State' : 'Reset Sample Notifications'}
-                    </button>
-                  </div>
-                  <DesktopNotificationView
-                    notifications={notifications}
-                    onGoHome={() => setActiveScreen('home')}
-                    onGoOrderHistory={() => setActiveScreen('order-history-ps')}
-                    onLogout={handleLogout}
-                    onMarkAllAsRead={handleMarkAllNotificationsRead}
-                    onClearAll={handleClearAllNotifications}
-                    onNotificationClick={handleNotificationClick}
-                  />
-                </div>
-
-                <div className="block lg:hidden max-w-md mx-auto w-full">
-                  <NotificationView
-                    notifications={notifications}
-                    onBack={() => setActiveScreen('home')}
-                    onMarkAllAsRead={handleMarkAllNotificationsRead}
-                    onNotificationClick={handleNotificationClick}
-                    isStandaloneScreen={true}
-                  />
-                </div>
-              </div>
+            {mobileNavTab === 'profile' && (
+              <ProfileView
+                onBack={() => setMobileNavTab('home')}
+                onLogout={handleLogout}
+                activeNavTab={mobileNavTab}
+                onNavTabChange={setMobileNavTab}
+                orderCount={orders.length}
+                onToggleRole={toggleRole}
+              />
             )}
           </div>
         )}
-
-        {/* =========================================================================
-            SCREEN 6 & 7: USER SIGN IN & SIGN UP SCREENS
-           ========================================================================= */}
-        {(activeScreen === 'signin' || activeScreen === 'signup') && (
-          <div className="w-full max-w-5xl my-auto">
-            {/* Desktop / Responsive Container */}
-            <div className="bg-white rounded-2xl md:rounded-3xl shadow-2xl overflow-hidden border border-slate-200/40">
-              <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[580px] lg:min-h-[640px]">
-                {/* Left Column: Hero Section */}
-                <div className="h-full">
-                  <HeroSection
-                    onSignInClick={() => setActiveScreen('signin')}
-                    showSignInButton={activeScreen === 'signup'}
-                  />
-                </div>
-
-                {/* Right Column: Form Section */}
-                <div className="flex items-center justify-center bg-white">
-                  {activeScreen === 'signin' ? (
-                    <SignInForm
-                      onSuccess={async (data) => {
-                        try {
-                          await api.login({ email: data.email, password: 'password' });
-                        } catch {
-                          // Ignore
-                        }
-                        setActiveScreen('home');
-                      }}
-                      onSignUpClick={() => setActiveScreen('signup')}
-                    />
-                  ) : (
-                    <SignUpForm
-                      onSuccess={async (data) => {
-                        setSignUpData(data);
-                        try {
-                          await api.register(data);
-                        } catch {
-                          // Ignore
-                        }
-                        setActiveScreen('home');
-                      }}
-                      onSignInClick={() => setActiveScreen('signin')}
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </main>
-
-      {/* Account Created Success Confirmation Modal */}
-      <SuccessModal
-        data={signUpData}
-        onClose={() => setSignUpData(null)}
-        onReset={() => setSignUpData(null)}
-      />
+      </div>
     </div>
   );
 }

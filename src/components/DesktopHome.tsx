@@ -13,6 +13,7 @@ interface DesktopHomeProps {
   onNavTabChange: (tab: 'home' | 'history' | 'notifications') => void;
   onOpenNotifications?: () => void;
   unreadNotificationCount?: number;
+  onToggleRole?: () => void;
 }
 
 const CATEGORIES = ['All', 'Popular', 'Local Dishes', 'Rice & Bowls', 'Grills'] as const;
@@ -25,6 +26,7 @@ export const DesktopHome: React.FC<DesktopHomeProps> = ({
   onNavTabChange,
   onOpenNotifications,
   unreadNotificationCount = 0,
+  onToggleRole,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
@@ -46,7 +48,7 @@ export const DesktopHome: React.FC<DesktopHomeProps> = ({
   });
 
   return (
-    <div className="w-full bg-white flex min-h-[680px] text-slate-800 select-none">
+    <div className="w-full bg-white flex min-h-screen text-slate-800 select-none">
       {/* Left Sidebar matching screenshot 1 (PS_Home) */}
       <aside className="w-56 shrink-0 border-r border-slate-100 flex flex-col justify-between p-6 bg-white">
         <div>
@@ -117,6 +119,20 @@ export const DesktopHome: React.FC<DesktopHomeProps> = ({
               <span>Logout</span>
             </button>
           </nav>
+
+          {/* Clean In-App Role Switcher */}
+          {onToggleRole && (
+            <div className="mt-8 pt-4 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={onToggleRole}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:text-[#E53935] hover:bg-red-50/60 border border-dashed border-slate-200 transition-all cursor-pointer"
+              >
+                <span>NSP Dispatch View</span>
+                <span className="text-[10px] text-slate-400 font-normal">Switch →</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* PWA Install prompt in Sidebar */}
@@ -198,22 +214,14 @@ export const DesktopHome: React.FC<DesktopHomeProps> = ({
 
         {/* Content Body */}
         <main className="flex-1 p-8 overflow-y-auto">
-          {/* Greeting Banner */}
-          <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                Hi, Isaiah!
-              </h1>
-              <p className="text-slate-400 font-normal text-sm md:text-base mt-1">
-                Browse food joints and place orders with custom pricing
-              </p>
-            </div>
-
-            {/* Live Operational Badge */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/60 text-xs font-semibold text-emerald-700">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>NSP Runners on Standby at Haatso</span>
-            </div>
+          {/* Greeting Banner matching design */}
+          <div className="mb-6">
+            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+              Hi, Isaiah!
+            </h1>
+            <p className="text-slate-400 font-normal text-sm md:text-base mt-1">
+              Browse food joints and place orders with custom pricing
+            </p>
           </div>
 
           {/* Search Bar + Category Pills */}
@@ -240,7 +248,7 @@ export const DesktopHome: React.FC<DesktopHomeProps> = ({
             </div>
 
             {/* Category Filter Pills */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
               {CATEGORIES.map((cat) => (
                 <button
                   key={cat}

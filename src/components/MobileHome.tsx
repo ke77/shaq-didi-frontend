@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { BrandLogo } from './BrandLogo';
 import { FoodCard } from './FoodCard';
 import { FOOD_ITEMS, FoodJointItem } from '../data/foodJoints';
-import { Search, Bell, Home, History, User } from 'lucide-react';
+import { MobileSidebarDrawer } from './MobileSidebarDrawer';
+import { Search, Bell, Home, History, User, Menu } from 'lucide-react';
 
 interface MobileHomeProps {
   onSelectFood: (item: FoodJointItem) => void;
@@ -12,6 +13,7 @@ interface MobileHomeProps {
   onLogout: () => void;
   onOpenNotifications?: () => void;
   unreadNotificationCount?: number;
+  onToggleRole?: () => void;
 }
 
 const CATEGORIES = ['All', 'Popular', 'Local Dishes', 'Rice & Bowls', 'Grills'] as const;
@@ -24,7 +26,9 @@ export const MobileHome: React.FC<MobileHomeProps> = ({
   onLogout,
   onOpenNotifications,
   unreadNotificationCount = 1,
+  onToggleRole,
 }) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [showSearchInput, setShowSearchInput] = useState(true);
@@ -51,48 +55,44 @@ export const MobileHome: React.FC<MobileHomeProps> = ({
         {/* Brand Logo */}
         <BrandLogo size="sm" />
 
-        {/* Right Action Icons: Search & Notification Bell with green badge */}
-        <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={() => setShowSearchInput(!showSearchInput)}
-            className="w-9 h-9 rounded-full border border-slate-200/80 flex items-center justify-center text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
-            title="Toggle Search"
-          >
-            <Search className="w-4 h-4 text-slate-600" />
-          </button>
-
+        {/* Right Action Icons: Notification Bell first, then Hamburger Menu on the right (borderless) */}
+        <div className="flex items-center gap-1">
+          {/* Notification Bell */}
           <div className="relative">
             <button
               type="button"
               onClick={onOpenNotifications}
-              className="w-9 h-9 rounded-full border border-slate-200/80 flex items-center justify-center text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+              className="w-10 h-10 rounded-full flex items-center justify-center text-slate-700 hover:bg-slate-100/80 active:scale-95 transition-all cursor-pointer"
               title="Notifications"
             >
-              <Bell className="w-4 h-4 text-slate-600" />
+              <Bell className="w-5 h-5 text-slate-700" />
               {/* Green notification badge matching screenshot */}
               {unreadNotificationCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 text-white font-bold text-[9px] flex items-center justify-center border-2 border-white">
-                  {unreadNotificationCount}
-                </span>
+                <span className="absolute 1.5 top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white"></span>
               )}
             </button>
           </div>
+
+          {/* Hamburger Menu Icon */}
+          <button
+            type="button"
+            onClick={() => setIsMenuOpen(true)}
+            className="w-10 h-10 rounded-full flex items-center justify-center text-slate-700 hover:bg-slate-100/80 active:scale-95 transition-all cursor-pointer"
+            title="Menu"
+            aria-label="Open Navigation Menu"
+          >
+            <Menu className="w-5 h-5 text-slate-700 stroke-[2.2]" />
+          </button>
         </div>
       </header>
 
       {/* Main Body */}
       <div className="flex-1 px-4 py-4 pb-24 overflow-y-auto">
-        {/* Greeting matching screenshot */}
+        {/* Greeting matching screenshot without the standby pill */}
         <div className="mb-3.5">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-              Hi, Isaiah!
-            </h1>
-            <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-              ● Standby at Haatso
-            </span>
-          </div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+            Hi, Isaiah!
+          </h1>
           <p className="text-slate-400 font-normal text-xs sm:text-sm mt-0.5">
             Browse food joints and place orders
           </p>
@@ -123,7 +123,14 @@ export const MobileHome: React.FC<MobileHomeProps> = ({
         )}
 
         {/* Horizontal Category Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-2.5 mb-2 no-scrollbar">
+        <div
+          className="flex items-center gap-1.5 overflow-x-auto pb-1 mb-2.5 no-scrollbar scroll-smooth"
+          style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            WebkitOverflowScrolling: 'touch',
+          }}
+        >
           {CATEGORIES.map((cat) => (
             <button
               key={cat}
@@ -208,6 +215,19 @@ export const MobileHome: React.FC<MobileHomeProps> = ({
           </button>
         </div>
       </nav>
+
+      {/* Slide-over Mobile Navigation Drawer matching desktop sidebar */}
+      <MobileSidebarDrawer
+        isOpen={isMenuOpen}
+        onClose={() => setIsMenuOpen(false)}
+        activeTab={activeTab}
+        onNavigateTab={onTabChange}
+        onOpenNotifications={onOpenNotifications}
+        onToggleRole={onToggleRole}
+        onLogout={onLogout}
+        orderCount={orderCount}
+        unreadNotificationCount={unreadNotificationCount}
+      />
     </div>
   );
 };
