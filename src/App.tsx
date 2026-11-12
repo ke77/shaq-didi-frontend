@@ -18,40 +18,86 @@ import { NspOrderHistory } from './components/NspOrderHistory';
 import { NotificationView, DesktopNotificationView } from './components/NotificationView';
 import { INITIAL_NOTIFICATIONS, AppNotification } from './data/notifications';
 import { FOOD_ITEMS, FoodJointItem } from './data/foodJoints';
-import { SignUpFormData } from './types';
+import { SignUpFormData, UserProfile, PersonnelRole } from './types';
 import { api } from './services/api';
-import { CheckCircle2, X, ArrowLeftRight, UserCheck } from 'lucide-react';
+import { CheckCircle2, X } from 'lucide-react';
+
+const DEFAULT_USER: UserProfile = {
+  id: 'usr-1',
+  fullName: 'Isaiah Amoh Mensah',
+  email: 'isaiaham@gmail.com',
+  phoneNumber: '0547016492',
+  role: 'PS',
+  station: 'Haatso Station',
+};
 
 const INITIAL_ORDERS: OrderRecord[] = [
   {
     id: 'ord-1041',
     item: FOOD_ITEMS[0],
+    menuItemName: "Daavi's Special Gob3",
     quantity: 1,
     amount: '35.00',
     personnel: 'Ama Serwaa (NSP - Station Runner)',
+    staffName: 'Isaiah Amoh Mensah',
+    staffPhone: '0547016492',
     notes: 'Block B Room 14, extra pepper please',
     date: 'Today, 12:45 PM',
-    status: 'Preparing',
+    status: 'Pending',
   },
   {
     id: 'ord-1039',
     item: FOOD_ITEMS[1],
+    menuItemName: "Mama Gee's Smoky Jollof & Chicken",
     quantity: 1,
-    amount: '50.00',
+    amount: '55.00',
     personnel: 'Kofi Mensah (NSP - Zone A Dispatch)',
+    staffName: 'Isaiah Amoh Mensah',
+    staffPhone: '0547016492',
     notes: 'Call on arrival',
     date: 'Yesterday, 1:15 PM',
-    status: 'Delivered',
+    status: 'Completed',
   },
 ];
+
+const ACCOUNTS_STORAGE_KEY = 'shaq_didi_accounts';
+
+const loadRegisteredAccounts = (): Record<string, UserProfile> => {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem(ACCOUNTS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+};
+
+const saveRegisteredAccount = (profile: UserProfile) => {
+  if (typeof window === 'undefined') return;
+  try {
+    const existing = loadRegisteredAccounts();
+    existing[profile.email.toLowerCase()] = profile;
+    localStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(existing));
+  } catch {
+    // Ignore storage quota errors
+  }
+};
+
+const deriveNameFromEmail = (email: string) => {
+  const local = email.split('@')[0] || 'Staff Member';
+  return local
+    .replace(/[._-]+/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+};
 
 export type UserRole = 'permanent_staff' | 'nsp';
 
 export default function App() {
-  // Authentication & Top-level View
+  // Authentication & Active User Profile
   const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [authView, setAuthView] = useState<'signin' | 'signup'>('signin');
   const [signUpData, setSignUpData] = useState<SignUpFormData | null>(null);
+  const [currentUser, setCurrentUser] = useState<UserProfile>(DEFAULT_USER);
 
   // Active Role: Permanent Staff or NSP Dispatcher
   const [userRole, setUserRole] = useState<UserRole>('permanent_staff');
@@ -73,16 +119,21 @@ export default function App() {
   const [notifications, setNotifications] = useState<AppNotification[]>(INITIAL_NOTIFICATIONS);
   const unreadNotificationCount = notifications.filter((n) => !n.read).length;
 
+  const showToast = (msg: string, duration = 4000) => {
+    setOrderToast(msg);
+    setTimeout(() => {
+      setOrderToast(null);
+    }, duration);
+  };
+
   const handleMarkAllNotificationsRead = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    setOrderToast('All notifications marked as read');
-    setTimeout(() => setOrderToast(null), 3000);
+    showToast('All notifications marked as read', 3000);
   };
 
   const handleClearAllNotifications = () => {
     setNotifications([]);
-    setOrderToast('All notifications cleared');
-    setTimeout(() => setOrderToast(null), 3000);
+    showToast('All notifications cleared', 3000);
   };
 
   const handleNotificationClick = (notif: AppNotification) => {
@@ -107,20 +158,22 @@ export default function App() {
     setMobileOverlayScreen('order-info');
   };
 
-  // Place Order handler
+  // Place Order handler (creates Pending order with staff details)
   const handlePlaceOrderInfo = async (data: OrderInfoSubmitData) => {
     const newRecord: OrderRecord = {
       id: `ord-${1042 + orders.length}`,
       item: data.item,
+      menuItemName: data.selectedMenuItem?.name,
       quantity: 1,
       amount: data.amount,
       notes: data.notes,
       personnel: data.personnel,
+      staffName: currentUser.fullName,
+      staffPhone: currentUser.phoneNumber,
       date: 'Just now',
-      status: 'Preparing',
+      status: 'Pending',
     };
 
-    // Sync with standalone Laravel API if configured
     try {
       await api.createOrder({
         food_item_id: data.item.id,
@@ -134,33 +187,30 @@ export default function App() {
 
     setOrders((prev) => [newRecord, ...prev]);
 
-    // Push real-time notification
     const orderNotif: AppNotification = {
       id: `notif-${Date.now()}`,
       type: 'order_assigned',
       title: 'New Order Assigned:',
-      message: `A new order has been assigned to you! Please check your dashboard to view details and manage the order (${data.item.name})`,
+      message: `Order from ${currentUser.fullName} at ${data.item.name} assigned to ${data.personnel.split(' (')[0]}.`,
       date: 'Just now',
       read: false,
       orderId: newRecord.id,
     };
     setNotifications((prev) => [orderNotif, ...prev]);
 
-    setOrderToast(
-      `Order placed for ${data.item.name} (Amount: GH₵ ${data.amount}) · Assigned to ${data.personnel.split(' (')[0]}!`
+    showToast(
+      `Order confirmed at ${data.item.name} (GH₵ ${data.amount}) · Assigned to ${data.personnel.split(' (')[0]}`,
+      5000
     );
-    setTimeout(() => {
-      setOrderToast(null);
-    }, 5000);
 
     setDesktopModalOpen(false);
     setMobileOverlayScreen('none');
   };
 
-  // Order Status update for NSP role
+  // Order Status update for NSP role (mark as Completed)
   const handleUpdateOrderStatus = async (
     orderId: string,
-    status: 'Preparing' | 'Dispatched' | 'Delivered'
+    status: 'Pending' | 'Completed'
   ) => {
     try {
       await api.updateOrderStatus(orderId, status);
@@ -168,33 +218,33 @@ export default function App() {
       // Offline fallback
     }
 
+    const targetOrder = orders.find((o) => o.id === orderId);
     setOrders((prev) =>
       prev.map((o) => (o.id === orderId ? { ...o, status } : o))
     );
 
-    const statusNotif: AppNotification = {
-      id: `notif-${Date.now()}`,
-      type: status === 'Delivered' ? 'order_completed' : 'order_dispatched',
-      title: status === 'Delivered' ? 'Order Completed:' : 'Order Dispatched:',
-      message: `Order for ${orderId} marked as ${status.toLowerCase()}`,
-      date: 'Just now',
-      read: false,
-      orderId,
-    };
-    setNotifications((prev) => [statusNotif, ...prev]);
+    if (status === 'Completed') {
+      const statusNotif: AppNotification = {
+        id: `notif-${Date.now()}`,
+        type: 'order_completed',
+        title: 'Order Completed:',
+        message: `Order for ${targetOrder?.item.name || orderId} has been marked as completed.`,
+        date: 'Just now',
+        read: false,
+        orderId,
+      };
+      setNotifications((prev) => [statusNotif, ...prev]);
+    }
 
-    setOrderToast(`Order ${orderId} updated to ${status}!`);
-    setTimeout(() => {
-      setOrderToast(null);
-    }, 4000);
+    showToast(`Order ${orderId} marked as ${status}.`);
   };
 
+  // Cancel Pending Order for Permanent Staff (PS Story 8)
   const handleCancelOrder = (orderId: string) => {
+    const target = orders.find((o) => o.id === orderId);
+    if (target && target.status !== 'Pending') return;
     setOrders((prev) => prev.filter((o) => o.id !== orderId));
-    setOrderToast(`Order cancelled.`);
-    setTimeout(() => {
-      setOrderToast(null), 3000;
-    });
+    showToast('Pending order cancelled.', 3000);
   };
 
   const handleLogout = async () => {
@@ -205,18 +255,33 @@ export default function App() {
     }
     setIsAuthenticated(false);
     setAuthView('signin');
+    setDesktopNavTab('home');
+    setMobileNavTab('home');
+    setMobileOverlayScreen('none');
   };
 
   const handleReorder = (item: FoodJointItem) => {
     setSelectedFoodItem(item);
-    // On desktop opens modal, on mobile opens order info
     setDesktopModalOpen(true);
     setMobileOverlayScreen('order-info');
   };
 
   // Switch between Permanent Staff and NSP role view
   const toggleRole = () => {
-    setUserRole((prev) => (prev === 'permanent_staff' ? 'nsp' : 'permanent_staff'));
+    setUserRole((prev) => {
+      const next = prev === 'permanent_staff' ? 'nsp' : 'permanent_staff';
+      setCurrentUser((u) => ({ ...u, role: next === 'nsp' ? 'NSP' : 'PS' }));
+      return next;
+    });
+  };
+
+  const applyAuthenticatedUser = (profile: UserProfile) => {
+    setCurrentUser(profile);
+    setUserRole(profile.role === 'NSP' ? 'nsp' : 'permanent_staff');
+    setDesktopNavTab('home');
+    setMobileNavTab('home');
+    setMobileOverlayScreen('none');
+    setIsAuthenticated(true);
   };
 
   // =========================================================================
@@ -224,8 +289,8 @@ export default function App() {
   // =========================================================================
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-5xl bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+      <div className="min-h-screen bg-[#F4F7FA] flex items-center justify-center p-4">
+        <div className="w-full max-w-5xl bg-white rounded-2xl shadow-xl overflow-hidden border border-[#DEE6EE]">
           <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[580px]">
             <div className="h-full">
               <HeroSection
@@ -239,11 +304,24 @@ export default function App() {
                 <SignInForm
                   onSuccess={async (data) => {
                     try {
-                      await api.login({ email: data.email, password: 'password' });
+                      await api.login({ email: data.email, password: data.password });
                     } catch {
                       // Fallback
                     }
-                    setIsAuthenticated(true);
+                    const registered = loadRegisteredAccounts()[data.email.toLowerCase()];
+                    const role: PersonnelRole = registered?.role || data.role || 'PS';
+                    const profile: UserProfile = registered || {
+                      id: `usr-${Date.now()}`,
+                      fullName:
+                        data.email.toLowerCase() === DEFAULT_USER.email
+                          ? DEFAULT_USER.fullName
+                          : deriveNameFromEmail(data.email),
+                      email: data.email,
+                      phoneNumber: DEFAULT_USER.phoneNumber,
+                      role,
+                      station: 'Haatso Station',
+                    };
+                    applyAuthenticatedUser(profile);
                   }}
                   onSignUpClick={() => setAuthView('signup')}
                 />
@@ -256,7 +334,16 @@ export default function App() {
                     } catch {
                       // Fallback
                     }
-                    setIsAuthenticated(true);
+                    const newProfile: UserProfile = {
+                      id: `usr-${Date.now()}`,
+                      fullName: data.fullName.trim(),
+                      email: data.email.trim(),
+                      phoneNumber: data.phoneNumber.trim(),
+                      role: data.role,
+                      station: 'Haatso Station',
+                    };
+                    saveRegisteredAccount(newProfile);
+                    applyAuthenticatedUser(newProfile);
                   }}
                   onSignInClick={() => setAuthView('signin')}
                 />
@@ -275,18 +362,18 @@ export default function App() {
   }
 
   // =========================================================================
-  // VIEW: MAIN APPLICATION (Pure Responsive Layout, No Device Frames)
+  // VIEW: MAIN APPLICATION (Pure Responsive Layout)
   // =========================================================================
   return (
-    <div className="min-h-screen bg-[#F8F9FA] text-slate-800 font-sans flex flex-col">
+    <div className="min-h-screen bg-[#F4F7FA] text-[#212121] font-sans flex flex-col">
       {/* Toast Notification */}
       {orderToast && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 bg-slate-900 text-white text-xs px-4 py-3 rounded-xl shadow-2xl border border-emerald-500/50 animate-in fade-in slide-in-from-bottom-3 duration-200">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className="fixed bottom-20 lg:bottom-6 right-4 lg:right-6 z-50 flex items-center gap-2.5 bg-[#212121] text-white text-xs px-4 py-3 rounded-xl shadow-2xl border border-[#FF6347]/40 animate-in fade-in slide-in-from-bottom-3 duration-200 max-w-sm">
+          <CheckCircle2 className="w-4 h-4 text-[#FF6347] shrink-0" />
           <span>{orderToast}</span>
           <button
             onClick={() => setOrderToast(null)}
-            className="ml-2 text-slate-400 hover:text-white p-0.5 rounded cursor-pointer"
+            className="ml-2 text-[#B5B5B5] hover:text-white p-0.5 rounded cursor-pointer"
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -298,23 +385,21 @@ export default function App() {
          ===================================================================== */}
       <div className="hidden lg:flex flex-1 w-full">
         {userRole === 'nsp' ? (
-          /* NSP Dispatch Portal matching image_704d4003.png */
           <div className="w-full flex-1">
             <NspOrderHistory
+              currentUser={currentUser}
               orders={orders}
               onUpdateStatus={handleUpdateOrderStatus}
-              onRefresh={() => {
-                setOrderToast('Synced assigned orders with dispatch server.');
-                setTimeout(() => setOrderToast(null), 3000);
-              }}
+              onRefresh={() => showToast('Synced assigned orders with dispatch server.', 3000)}
               onToggleRole={toggleRole}
+              onLogout={handleLogout}
             />
           </div>
         ) : (
-          /* Permanent Staff Desktop Portal matching PS_Home / Order History / Notifications */
           <div className="w-full flex-1 relative">
             {desktopNavTab === 'home' && (
               <DesktopHome
+                currentUser={currentUser}
                 onLogout={handleLogout}
                 onSelectFood={handleDesktopSelectFood}
                 orderCount={orders.length}
@@ -328,6 +413,7 @@ export default function App() {
 
             {desktopNavTab === 'history' && (
               <PermanentStaffOrderHistory
+                currentUser={currentUser}
                 orders={orders}
                 onGoHome={() => setDesktopNavTab('home')}
                 onLogout={handleLogout}
@@ -340,6 +426,7 @@ export default function App() {
 
             {desktopNavTab === 'notifications' && (
               <DesktopNotificationView
+                currentUser={currentUser}
                 notifications={notifications}
                 onGoHome={() => setDesktopNavTab('home')}
                 onGoOrderHistory={() => setDesktopNavTab('history')}
@@ -350,7 +437,7 @@ export default function App() {
               />
             )}
 
-            {/* Desktop Order Modal matching image_b0a6faf9.png */}
+            {/* Desktop Food Joint Details, Menu, Order Form & Order Summary Modal */}
             <DesktopOrderModal
               isOpen={desktopModalOpen}
               item={selectedFoodItem}
@@ -365,7 +452,6 @@ export default function App() {
           MOBILE VIEW (Visible on small & medium screens < 1024px)
          ===================================================================== */}
       <div className="flex lg:hidden flex-1 w-full bg-white flex-col">
-        {/* Full-screen Overlay 1: Order Info Page matching image_664734d7.png */}
         {mobileOverlayScreen === 'order-info' ? (
           <OrderInfoPage
             item={selectedFoodItem}
@@ -373,31 +459,29 @@ export default function App() {
             onSubmitOrder={handlePlaceOrderInfo}
           />
         ) : mobileOverlayScreen === 'notifications' ? (
-          /* Full-screen Overlay 2: Notifications Page matching image_937fe657.png */
           <NotificationView
+            currentUser={currentUser}
             notifications={notifications}
             onBack={() => setMobileOverlayScreen('none')}
             onMarkAllAsRead={handleMarkAllNotificationsRead}
             onNotificationClick={handleNotificationClick}
           />
         ) : userRole === 'nsp' ? (
-          /* Mobile NSP Assigned Orders */
-          <div className="flex-1 pb-16">
+          <div className="flex-1">
             <NspOrderHistory
+              currentUser={currentUser}
               orders={orders}
               onUpdateStatus={handleUpdateOrderStatus}
-              onRefresh={() => {
-                setOrderToast('Synced assigned orders.');
-                setTimeout(() => setOrderToast(null), 3000);
-              }}
+              onRefresh={() => showToast('Synced assigned orders.', 3000)}
               onToggleRole={toggleRole}
+              onLogout={handleLogout}
             />
           </div>
         ) : (
-          /* Mobile Permanent Staff Screens with Bottom Navigation */
           <div className="flex-1 flex flex-col">
             {mobileNavTab === 'home' && (
               <MobileHome
+                currentUser={currentUser}
                 onSelectFood={handleMobileSelectFood}
                 orderCount={orders.length}
                 activeTab={mobileNavTab}
@@ -411,6 +495,7 @@ export default function App() {
 
             {mobileNavTab === 'history' && (
               <MobileOrderHistory
+                currentUser={currentUser}
                 orders={orders}
                 orderCount={orders.length}
                 activeNavTab={mobileNavTab}
@@ -423,6 +508,7 @@ export default function App() {
 
             {mobileNavTab === 'profile' && (
               <ProfileView
+                currentUser={currentUser}
                 onBack={() => setMobileNavTab('home')}
                 onLogout={handleLogout}
                 activeNavTab={mobileNavTab}
@@ -432,7 +518,7 @@ export default function App() {
               />
             )}
 
-            {/* Persistent Fixed Bottom Navigation Bar on Mobile - always visible regardless of scroll */}
+            {/* Persistent Fixed Bottom Navigation Bar on Mobile */}
             <MobileBottomNav
               activeTab={mobileNavTab}
               onTabChange={setMobileNavTab}
@@ -441,6 +527,13 @@ export default function App() {
           </div>
         )}
       </div>
+
+      {/* Show account creation summary modal even after routing to dashboard */}
+      <SuccessModal
+        data={signUpData}
+        onClose={() => setSignUpData(null)}
+        onReset={() => setSignUpData(null)}
+      />
     </div>
   );
 }

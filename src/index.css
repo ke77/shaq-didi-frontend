@@ -4,15 +4,49 @@
 @theme {
   --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-display: "Outfit", "Plus Jakarta Sans", sans-serif;
+
+  /* Brand Palette */
+  --color-primary: #FF6347;
+  --color-primary-deep: #E53935;
+  --color-primary-soft: #FF6E6A;
+  --color-primary-tint: #FFEBE7;
+
+  --color-secondary: #FFA500;
+  --color-secondary-deep: #DB8F05;
+  --color-secondary-gold: #FFC300;
+  --color-secondary-warm: #FFC04D;
+
+  --color-dark: #212121;
+  --color-dark-muted: #757575;
+  --color-dark-subtle: #B5B5B5;
+
+  --color-pearl: #FFFFFF;
+  --color-pearl-bg: #F4F7FA;
+  --color-pearl-border: #DEE6EE;
+  --color-pearl-strong: #CDD5E1;
 }
 
 :root {
-  --brand-red: #e53935;
-  --brand-red-hover: #c62828;
+  --brand-primary: #FF6347;
+  --brand-red: #E53935;
+  --brand-coral: #FF6E6A;
+  --brand-blush: #FFEBE7;
+  --brand-orange: #FFA500;
+  --brand-amber: #DB8F05;
+  --brand-yellow: #FFC300;
+  --brand-dark: #212121;
+  --brand-muted: #757575;
+  --brand-subtle: #B5B5B5;
+  --brand-pearl: #FFFFFF;
+  --brand-surface: #F4F7FA;
+  --brand-border: #DEE6EE;
+  --brand-border-strong: #CDD5E1;
 }
 
 body {
   font-family: var(--font-sans);
+  color: var(--brand-dark);
+  background-color: var(--brand-surface);
 }
 
 /* Hide scrollbars across all browsers while retaining touch & trackpad horizontal scroll */

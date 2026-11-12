@@ -1,5 +1,14 @@
 export type PersonnelRole = 'PS' | 'NSP';
 
+export interface UserProfile {
+  id: string;
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  role: PersonnelRole;
+  station?: string;
+}
+
 export interface SignUpFormData {
   role: PersonnelRole;
   fullName: string;
@@ -15,15 +24,18 @@ export interface FormErrors {
   phoneNumber?: string;
 }
 
-export const ROLE_DEFINITIONS: Record<PersonnelRole, { label: string; fullTitle: string; description: string }> = {
+export const ROLE_DEFINITIONS: Record<
+  PersonnelRole,
+  { label: string; fullTitle: string; description: string }
+> = {
   PS: {
     label: 'PS',
     fullTitle: 'Permanent Staff',
-    description: 'Full-time company personnel managing regular kitchen & order operations',
+    description: 'Browse food joints, place orders, and assign dispatch personnel',
   },
   NSP: {
     label: 'NSP',
     fullTitle: 'National Service Personnel',
-    description: 'National service personnel assigned to dispatch and logistics support',
+    description: 'View assigned orders, manage deliveries, and mark orders completed',
   },
 };

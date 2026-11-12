@@ -16,13 +16,11 @@ export const EmptyClipboardGraphic: React.FC<EmptyClipboardGraphicProps> = ({
       aria-label="Empty orders illustration"
     >
       {/* Background/Shadow glow */}
-      <ellipse cx="100" cy="180" rx="55" ry="8" fill="#F1F5F9" />
+      <ellipse cx="100" cy="180" rx="55" ry="8" fill="#F4F7FA" />
 
       {/* Back tilted clipboard */}
       <g transform="rotate(-10 65 105)">
-        {/* Board Shadow */}
-        <rect x="36" y="38" width="80" height="114" rx="8" fill="#E2E8F0" />
-        {/* Board Outline */}
+        <rect x="36" y="38" width="80" height="114" rx="8" fill="#DEE6EE" />
         <rect
           x="35"
           y="36"
@@ -30,29 +28,24 @@ export const EmptyClipboardGraphic: React.FC<EmptyClipboardGraphicProps> = ({
           height="114"
           rx="7"
           fill="#FFFFFF"
-          stroke="#E2E8F0"
+          stroke="#DEE6EE"
           strokeWidth="2.5"
         />
-        {/* Paper Sheet */}
-        <rect x="42" y="52" width="66" height="90" rx="4" fill="#EAEFF5" />
+        <rect x="42" y="52" width="66" height="90" rx="4" fill="#F4F7FA" />
 
-        {/* Clip Wire Ring */}
         <path
           d="M68 28 C68 24 82 24 82 28"
-          stroke="#FF7E67"
+          stroke="#FF6347"
           strokeWidth="2.5"
           fill="none"
           strokeLinecap="round"
         />
-        {/* Clip Base */}
-        <rect x="62" y="32" width="26" height="14" rx="3" fill="#FF7E67" />
+        <rect x="62" y="32" width="26" height="14" rx="3" fill="#FF6347" />
       </g>
 
       {/* Front upright clipboard */}
       <g>
-        {/* Board Shadow */}
-        <rect x="74" y="44" width="84" height="118" rx="8" fill="#CBD5E1" opacity="0.4" />
-        {/* Board Base */}
+        <rect x="74" y="44" width="84" height="118" rx="8" fill="#CDD5E1" opacity="0.45" />
         <rect
           x="72"
           y="42"
@@ -60,22 +53,19 @@ export const EmptyClipboardGraphic: React.FC<EmptyClipboardGraphicProps> = ({
           height="118"
           rx="8"
           fill="#FFFFFF"
-          stroke="#E2E8F0"
+          stroke="#DEE6EE"
           strokeWidth="2.5"
         />
-        {/* Paper Sheet */}
-        <rect x="80" y="58" width="68" height="94" rx="4" fill="#EAEFF5" />
+        <rect x="80" y="58" width="68" height="94" rx="4" fill="#F4F7FA" />
 
-        {/* Clip Wire Ring */}
         <path
           d="M107 34 C107 29 121 29 121 34"
-          stroke="#FF7E67"
+          stroke="#FF6347"
           strokeWidth="2.5"
           fill="none"
           strokeLinecap="round"
         />
-        {/* Clip Base */}
-        <rect x="101" y="38" width="26" height="14" rx="3" fill="#FF7E67" />
+        <rect x="101" y="38" width="26" height="14" rx="3" fill="#FF6347" />
       </g>
     </svg>
   );

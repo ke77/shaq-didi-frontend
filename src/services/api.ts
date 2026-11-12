@@ -264,7 +264,7 @@ class ApiService {
 
   public async updateOrderStatus(
     orderId: string,
-    status: 'Preparing' | 'Dispatched' | 'Delivered'
+    status: 'Pending' | 'Completed'
   ): Promise<{ success: boolean; status: string }> {
     try {
       return await this.request<{ success: boolean; status: string }>(`/orders/${orderId}/status`, {

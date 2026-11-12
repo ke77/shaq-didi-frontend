@@ -13,7 +13,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 }) => {
   return (
     <div
-      className={`relative overflow-hidden flex flex-col justify-center items-center text-center select-none ${
+      className={`relative overflow-hidden flex flex-col justify-center items-center text-center select-none bg-[#212121] ${
         isMobileVariant
           ? 'h-64 sm:h-72 rounded-b-[2rem] px-6 py-8'
           : 'h-full min-h-[580px] lg:min-h-full px-8 py-16'
@@ -27,15 +27,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         className="absolute inset-0 w-full h-full object-cover object-center"
       />
 
-      {/* Atmospheric Dark Overlay Scrim matching mockup */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/75 backdrop-brightness-[0.82]" />
+      {/* Atmospheric Dark Overlay Scrim */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#212121]/75 via-[#212121]/65 to-[#212121]/85 backdrop-brightness-[0.82]" />
 
       {/* Subtle vignette border */}
-      <div className="absolute inset-0 shadow-[inset_0_0_80px_rgba(0,0,0,0.6)]" />
+      <div className="absolute inset-0 shadow-[inset_0_0_80px_rgba(33,33,33,0.65)]" />
 
       {/* Hero Content */}
       <div className="relative z-10 flex flex-col items-center max-w-sm sm:max-w-md mx-auto">
-        {/* Welcome to */}
         <h1
           className={`font-semibold tracking-tight text-white drop-shadow-sm ${
             isMobileVariant ? 'text-2xl sm:text-3xl' : 'text-3xl sm:text-4xl lg:text-5xl'
@@ -44,33 +43,30 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           Welcome to
         </h1>
 
-        {/* Brand Name: ShaQ DIDI */}
         <div
           className={`font-extrabold tracking-tight mt-1 mb-2 drop-shadow-md ${
             isMobileVariant ? 'text-2xl sm:text-3xl' : 'text-3xl sm:text-4xl lg:text-5xl'
           }`}
         >
-          <span className="text-[#E53935] drop-shadow-[0_2px_10px_rgba(229,57,53,0.35)]">
+          <span className="text-[#FF6347] drop-shadow-[0_2px_10px_rgba(255,99,71,0.4)]">
             ShaQ
           </span>{' '}
           <span className="text-white">DIDI</span>
         </div>
 
-        {/* Subtitle / Tagline */}
         <p
-          className={`text-slate-200 font-normal leading-relaxed mb-6 drop-shadow-sm ${
+          className={`text-[#F4F7FA] font-normal leading-relaxed mb-6 drop-shadow-sm ${
             isMobileVariant ? 'text-xs max-w-[240px]' : 'text-xs sm:text-sm max-w-[280px]'
           }`}
         >
           Assign a Personnel, Simplify Your Order!
         </p>
 
-        {/* Sign In Button (Ghost / Outline style from mockup, only on Sign Up page) */}
         {!isMobileVariant && showSignInButton && onSignInClick && (
           <button
             type="button"
             onClick={onSignInClick}
-            className="inline-flex items-center justify-center px-10 py-2.5 rounded-md border border-white/80 bg-white/5 hover:bg-white/15 text-white text-sm font-medium tracking-wide shadow-sm backdrop-blur-xs transition-all duration-150 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+            className="inline-flex items-center justify-center px-10 py-2.5 rounded-md border border-white/80 bg-white/10 hover:bg-white/20 text-white text-sm font-medium tracking-wide shadow-sm backdrop-blur-xs transition-all duration-150 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             title="Sign In with existing personnel account"
           >
             Sign In

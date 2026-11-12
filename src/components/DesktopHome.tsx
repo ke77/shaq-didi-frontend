@@ -3,9 +3,11 @@ import { BrandLogo } from './BrandLogo';
 import { FoodCard } from './FoodCard';
 import { FOOD_ITEMS, FoodJointItem } from '../data/foodJoints';
 import { PWAInstallButton } from './PWAInstallButton';
-import { Home, History, LogOut, Search, Bell, CheckCircle2, Sparkles, Utensils } from 'lucide-react';
+import { UserProfile } from '../types';
+import { Home, History, LogOut, Search, Bell, CheckCircle2, Utensils, Flame, TrendingUp } from 'lucide-react';
 
 interface DesktopHomeProps {
+  currentUser: UserProfile;
   onLogout: () => void;
   onSelectFood: (item: FoodJointItem) => void;
   orderCount: number;
@@ -16,9 +18,18 @@ interface DesktopHomeProps {
   onToggleRole?: () => void;
 }
 
-const CATEGORIES = ['All', 'Popular', 'Local Dishes', 'Rice & Bowls', 'Grills'] as const;
+const CATEGORIES = ['All', 'Popular', 'Most Ordered', 'Local Dishes', 'Rice & Bowls', 'Grills'] as const;
+
+const getInitials = (name: string) =>
+  name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((n) => n[0]?.toUpperCase())
+    .join('') || 'IA';
 
 export const DesktopHome: React.FC<DesktopHomeProps> = ({
+  currentUser,
   onLogout,
   onSelectFood,
   orderCount,
@@ -32,25 +43,38 @@ export const DesktopHome: React.FC<DesktopHomeProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [showNotifications, setShowNotifications] = useState(false);
 
+  const firstName = currentUser.fullName.split(' ')[0] || 'Isaiah';
+  const initials = getInitials(currentUser.fullName);
+
   const filteredItems = FOOD_ITEMS.filter((item) => {
     const q = searchQuery.toLowerCase().trim();
     const matchesSearch =
       !q ||
       item.name.toLowerCase().includes(q) ||
       item.location.toLowerCase().includes(q) ||
-      item.jointName.toLowerCase().includes(q) ||
-      item.category.toLowerCase().includes(q);
+      item.featuredDish.toLowerCase().includes(q) ||
+      item.category.toLowerCase().includes(q) ||
+      item.menu.some((m) => m.name.toLowerCase().includes(q));
 
     const matchesCategory =
-      selectedCategory === 'All' || item.category === selectedCategory;
+      selectedCategory === 'All' ||
+      (selectedCategory === 'Popular' && item.isPopular) ||
+      (selectedCategory === 'Most Ordered' && item.isMostOrdered) ||
+      item.category === selectedCategory;
 
     return matchesSearch && matchesCategory;
   });
 
+  const showCategorizedDashboard = selectedCategory === 'All' && !searchQuery.trim();
+  const popularJoints = FOOD_ITEMS.filter((item) => item.isPopular);
+  const mostOrderedJoints = [...FOOD_ITEMS]
+    .filter((item) => item.isMostOrdered)
+    .sort((a, b) => b.orderCount - a.orderCount);
+
   return (
-    <div className="w-full bg-white flex min-h-screen text-slate-800 select-none">
-      {/* Left Sidebar matching screenshot 1 (PS_Home) */}
-      <aside className="w-56 shrink-0 border-r border-slate-100 flex flex-col justify-between p-6 bg-white">
+    <div className="w-full bg-white flex min-h-screen text-[#212121] select-none">
+      {/* Left Sidebar */}
+      <aside className="w-56 shrink-0 border-r border-[#DEE6EE] flex flex-col justify-between p-6 bg-white">
         <div>
           {/* Logo at top */}
           <div className="mb-10 pl-1">
@@ -64,8 +88,8 @@ export const DesktopHome: React.FC<DesktopHomeProps> = ({
               onClick={() => onNavTabChange('home')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
                 activeNavTab === 'home'
-                  ? 'bg-red-50 text-[#E53935] shadow-xs'
-                  : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                  ? 'bg-[#FFEBE7] text-[#E53935]'
+                  : 'text-[#757575] hover:text-[#212121] hover:bg-[#F4F7FA]'
               }`}
             >
               <Home className="w-4 h-4 shrink-0" />
@@ -77,14 +101,14 @@ export const DesktopHome: React.FC<DesktopHomeProps> = ({
               onClick={() => onNavTabChange('history')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
                 activeNavTab === 'history'
-                  ? 'bg-red-50 text-[#E53935] shadow-xs'
-                  : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                  ? 'bg-[#FFEBE7] text-[#E53935]'
+                  : 'text-[#757575] hover:text-[#212121] hover:bg-[#F4F7FA]'
               }`}
             >
               <History className="w-4 h-4 shrink-0" />
               <span>Order History</span>
               {orderCount > 0 && (
-                <span className="ml-auto bg-[#E53935] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                <span className="ml-auto bg-[#FF6347] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full tabular-nums">
                   {orderCount}
                 </span>
               )}
@@ -97,14 +121,14 @@ export const DesktopHome: React.FC<DesktopHomeProps> = ({
               }
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
                 activeNavTab === 'notifications'
-                  ? 'bg-red-50 text-[#E53935] shadow-xs'
-                  : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                  ? 'bg-[#FFEBE7] text-[#E53935]'
+                  : 'text-[#757575] hover:text-[#212121] hover:bg-[#F4F7FA]'
               }`}
             >
               <Bell className="w-4 h-4 shrink-0" />
               <span>Notifications</span>
               {unreadNotificationCount > 0 && (
-                <span className="ml-auto bg-emerald-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                <span className="ml-auto bg-[#FFA500] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full tabular-nums">
                   {unreadNotificationCount}
                 </span>
               )}
@@ -113,30 +137,30 @@ export const DesktopHome: React.FC<DesktopHomeProps> = ({
             <button
               type="button"
               onClick={onLogout}
-              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-500 hover:text-red-600 hover:bg-red-50/50 transition-colors cursor-pointer"
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-[#757575] hover:text-[#E53935] hover:bg-[#FFEBE7]/60 transition-colors cursor-pointer"
             >
               <LogOut className="w-4 h-4 shrink-0" />
               <span>Logout</span>
             </button>
           </nav>
 
-          {/* Clean In-App Role Switcher */}
+          {/* In-App Role Switcher */}
           {onToggleRole && (
-            <div className="mt-8 pt-4 border-t border-slate-100">
+            <div className="mt-8 pt-4 border-t border-[#DEE6EE]">
               <button
                 type="button"
                 onClick={onToggleRole}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:text-[#E53935] hover:bg-red-50/60 border border-dashed border-slate-200 transition-all cursor-pointer"
+                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-[#757575] hover:text-[#E53935] hover:bg-[#FFEBE7]/50 border border-dashed border-[#CDD5E1] transition-all cursor-pointer"
               >
                 <span>NSP Dispatch View</span>
-                <span className="text-[10px] text-slate-400 font-normal">Switch →</span>
+                <span className="text-[10px] text-[#B5B5B5] font-normal">Switch →</span>
               </button>
             </div>
           )}
         </div>
 
         {/* PWA Install prompt in Sidebar */}
-        <div className="pt-4 border-t border-slate-100">
+        <div className="pt-4 border-t border-[#DEE6EE]">
           <PWAInstallButton variant="sidebar" />
         </div>
       </aside>
@@ -144,44 +168,43 @@ export const DesktopHome: React.FC<DesktopHomeProps> = ({
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 bg-white">
         {/* Top Header / Breadcrumbs Bar */}
-        <header className="h-16 border-b border-slate-100 px-8 flex items-center justify-between">
+        <header className="h-16 border-b border-[#DEE6EE] px-8 flex items-center justify-between bg-white">
           <div className="flex items-center gap-2">
             <span className="text-sm font-bold text-[#E53935]">Home</span>
-            <span className="text-slate-300 font-light text-xs">/</span>
-            <span className="text-xs text-slate-500 font-medium">Haatso Station Joint Dispatch</span>
+            <span className="text-[#CDD5E1] font-light text-xs">/</span>
+            <span className="text-xs text-[#757575] font-medium">Haatso Station Joint Dispatch</span>
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Notification Bell with Badge */}
+            {/* Notification Bell */}
             <div className="relative">
               <button
                 type="button"
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="relative p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-full transition-colors cursor-pointer"
+                className="relative p-2 text-[#757575] hover:text-[#212121] hover:bg-[#F4F7FA] rounded-full transition-colors cursor-pointer"
                 title="Notifications"
               >
                 <Bell className="w-5 h-5" />
                 {unreadNotificationCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" />
+                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-[#FF6347] border-2 border-white rounded-full" />
                 )}
               </button>
 
-              {/* Notification Dropdown */}
               {showNotifications && (
-                <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-slate-200/80 p-3 z-30 animate-in fade-in zoom-in-95 duration-150">
-                  <div className="text-xs font-bold text-slate-900 pb-2 border-b border-slate-100 flex items-center justify-between">
+                <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-[#DEE6EE] p-3 z-30 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="text-xs font-bold text-[#212121] pb-2 border-b border-[#DEE6EE] flex items-center justify-between">
                     <span>Notifications</span>
-                    <span className="text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded">
-                      Live
+                    <span className="text-[10px] text-[#DB8F05] font-semibold">
+                      {unreadNotificationCount} unread
                     </span>
                   </div>
                   <div className="space-y-2 mt-2 text-xs">
-                    <div className="p-2 rounded-lg bg-slate-50 border border-slate-100 flex items-start gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <div className="p-2 rounded-lg bg-[#F4F7FA] border border-[#DEE6EE] flex items-start gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-[#FF6347] shrink-0 mt-0.5" />
                       <div>
-                        <p className="font-semibold text-slate-800">Dispatch Personnel Assigned</p>
-                        <p className="text-[11px] text-slate-500">
-                          Haatso Station personnel is coordinating orders.
+                        <p className="font-semibold text-[#212121]">Dispatch Personnel Ready</p>
+                        <p className="text-[11px] text-[#757575]">
+                          Haatso Station NSP team is coordinating staff orders.
                         </p>
                       </div>
                     </div>
@@ -193,7 +216,7 @@ export const DesktopHome: React.FC<DesktopHomeProps> = ({
                         setShowNotifications(false);
                         onOpenNotifications();
                       }}
-                      className="w-full mt-2.5 pt-2 border-t border-slate-100 text-center text-xs font-semibold text-[#E53935] hover:text-[#d32f2f] cursor-pointer block"
+                      className="w-full mt-2.5 pt-2 border-t border-[#DEE6EE] text-center text-xs font-semibold text-[#E53935] hover:text-[#FF6347] cursor-pointer block"
                     >
                       View All Notifications →
                     </button>
@@ -202,44 +225,44 @@ export const DesktopHome: React.FC<DesktopHomeProps> = ({
               )}
             </div>
 
-            {/* Profile Avatar Badge "IA" (Isaiah) matching screenshot */}
+            {/* Profile Avatar Badge */}
             <div
-              className="w-8 h-8 rounded-full bg-[#E53935] text-white flex items-center justify-center font-bold text-xs tracking-tight shadow-xs cursor-pointer hover:ring-2 hover:ring-red-300 transition-all"
-              title="Isaiah Amoh Mensah (Permanent Staff)"
+              className="w-8 h-8 rounded-full bg-[#FF6E6A] text-white flex items-center justify-center font-bold text-xs tracking-tight shadow-xs cursor-pointer hover:ring-2 hover:ring-[#FFEBE7] transition-all"
+              title={`${currentUser.fullName} (Permanent Staff)`}
             >
-              IA
+              {initials}
             </div>
           </div>
         </header>
 
         {/* Content Body */}
         <main className="flex-1 p-8 overflow-y-auto">
-          {/* Greeting Banner matching design */}
+          {/* Greeting Banner */}
           <div className="mb-6">
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-              Hi, Isaiah!
+            <h1 className="text-3xl font-extrabold text-[#212121] tracking-tight">
+              Hi, {firstName}!
             </h1>
-            <p className="text-slate-400 font-normal text-sm md:text-base mt-1">
-              Browse food joints and place orders with custom pricing
+            <p className="text-[#757575] font-normal text-sm md:text-base mt-1">
+              Select a food joint to view its menu and place an order
             </p>
           </div>
 
-          {/* Search Bar + Category Pills */}
+          {/* Search Bar + Category Filter Buttons */}
           <div className="mb-8 space-y-4">
             <div className="max-w-md">
               <div className="relative flex items-center">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
+                <Search className="w-4 h-4 text-[#B5B5B5] absolute left-3.5 pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="Search dishes, joints, or locations..."
+                  placeholder="Search food joints, dishes, or locations..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-100/70 border border-slate-200/60 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#E53935] focus:bg-white focus:ring-1 focus:ring-[#E53935] transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#F4F7FA] border border-[#DEE6EE] text-sm text-[#212121] placeholder:text-[#B5B5B5] focus:outline-none focus:border-[#FF6347] focus:bg-white focus:ring-1 focus:ring-[#FF6347] transition-all"
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-3 text-xs text-slate-400 hover:text-slate-600 cursor-pointer"
+                    className="absolute right-3 text-xs text-[#757575] hover:text-[#212121] cursor-pointer"
                   >
                     Clear
                   </button>
@@ -247,42 +270,90 @@ export const DesktopHome: React.FC<DesktopHomeProps> = ({
               </div>
             </div>
 
-            {/* Category Filter Pills */}
+            {/* Category Filter Buttons (Popular, Most Ordered, etc.) */}
             <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
               {CATEGORIES.map((cat) => (
                 <button
                   key={cat}
                   type="button"
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer shrink-0 ${
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
                     selectedCategory === cat
-                      ? 'bg-[#FFEAE6] text-[#E53935] shadow-xs ring-1 ring-red-200'
-                      : 'bg-slate-100 hover:bg-slate-200/80 text-slate-600'
+                      ? 'bg-[#FFEBE7] text-[#E53935] ring-1 ring-[#FF6E6A]/40'
+                      : 'bg-[#F4F7FA] hover:bg-[#DEE6EE]/60 text-[#757575] hover:text-[#212121]'
                   }`}
                 >
                   {cat}
                 </button>
               ))}
-              <span className="text-xs text-slate-400 ml-auto hidden sm:inline">
-                {filteredItems.length} {filteredItems.length === 1 ? 'joint' : 'joints'} available
-              </span>
             </div>
           </div>
 
-          {/* 3-Column Food Grid matching screenshot */}
-          {filteredItems.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredItems.map((item) => (
-                <FoodCard key={item.id} item={item} onClick={onSelectFood} />
-              ))}
+          {/* Categorized Dashboard Sections: Popular & Most Ordered (PS Story 3) */}
+          {showCategorizedDashboard ? (
+            <div className="space-y-10">
+              {/* Section 1: Popular Food Joints */}
+              <section>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Flame className="w-4 h-4 text-[#FF6347]" />
+                    <h2 className="text-lg font-bold text-[#212121] tracking-tight">Popular</h2>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCategory('Popular')}
+                    className="text-xs font-semibold text-[#E53935] hover:text-[#FF6347] cursor-pointer"
+                  >
+                    See all
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {popularJoints.map((item) => (
+                    <FoodCard key={item.id} item={item} onClick={onSelectFood} />
+                  ))}
+                </div>
+              </section>
+
+              {/* Section 2: Most Ordered Food Joints */}
+              <section>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-[#FFA500]" />
+                    <h2 className="text-lg font-bold text-[#212121] tracking-tight">Most Ordered</h2>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCategory('Most Ordered')}
+                    className="text-xs font-semibold text-[#E53935] hover:text-[#FF6347] cursor-pointer"
+                  >
+                    See all
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {mostOrderedJoints.map((item) => (
+                    <FoodCard key={`mo-${item.id}`} item={item} onClick={onSelectFood} />
+                  ))}
+                </div>
+              </section>
+            </div>
+          ) : filteredItems.length > 0 ? (
+            <div>
+              <h2 className="text-lg font-bold text-[#212121] tracking-tight mb-4">
+                {searchQuery.trim() ? `Results for "${searchQuery}"` : selectedCategory}
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredItems.map((item) => (
+                  <FoodCard key={item.id} item={item} onClick={onSelectFood} />
+                ))}
+              </div>
             </div>
           ) : (
-            <div className="py-16 text-center text-slate-400">
-              <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3 text-slate-400">
+            <div className="py-16 text-center text-[#757575]">
+              <div className="w-12 h-12 rounded-full bg-[#F4F7FA] flex items-center justify-center mx-auto mb-3 text-[#B5B5B5]">
                 <Utensils className="w-6 h-6 stroke-[1.5]" />
               </div>
-              <p className="text-sm font-semibold text-slate-700">No food joints match your filter.</p>
-              <p className="text-xs text-slate-400 mt-1">Try searching for Gob3, Jollof, or reset your filters.</p>
+              <p className="text-sm font-semibold text-[#212121]">No food joints match your filter.</p>
+              <p className="text-xs text-[#757575] mt-1">Try searching for Daavi, Jollof, or reset your filters.</p>
               <button
                 onClick={() => {
                   setSearchQuery('');
