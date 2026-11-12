@@ -108,7 +108,7 @@ export const DesktopHome: React.FC<DesktopHomeProps> = ({
               <History className="w-4 h-4 shrink-0" />
               <span>Order History</span>
               {orderCount > 0 && (
-                <span className="ml-auto bg-[#FF6347] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full tabular-nums">
+                <span className="ml-auto bg-gray-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                   {orderCount}
                 </span>
               )}
