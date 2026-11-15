@@ -74,7 +74,7 @@ export const NspOrderHistory: React.FC<NspOrderHistoryProps> = ({
   return (
     <div className="w-full min-h-screen bg-white flex flex-col text-[#212121] select-none">
       {/* Top Header */}
-      <header className="h-16 border-b border-[#DEE6EE] px-4 sm:px-8 flex items-center justify-between bg-white sticky top-0 z-20">
+      <header className="h-16 border-b border-[#DEE6EE]/70 px-4 sm:px-8 flex items-center justify-between bg-white shadow-[0_2px_10px_rgba(33,33,33,0.06)] sticky top-0 z-20">
         <div className="flex items-center gap-2.5">
           <BrandLogo size="sm" />
           <span className="hidden sm:inline text-xs font-semibold text-[#757575] border-l border-[#DEE6EE] pl-2.5">

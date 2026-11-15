@@ -138,9 +138,9 @@ export const DesktopNotificationView: React.FC<NotificationViewProps> = ({
   });
 
   return (
-    <div className="w-full min-h-screen bg-white flex text-[#212121] select-none">
-      {/* Left Sidebar */}
-      <aside className="w-56 shrink-0 border-r border-[#DEE6EE] flex flex-col justify-between p-6 bg-white">
+    <div className="w-full h-full lg:h-screen overflow-hidden bg-white flex text-[#212121] select-none pl-64">
+      {/* Fixed Left Sidebar */}
+      <aside className="fixed top-0 bottom-0 left-0 z-30 w-64 h-screen shrink-0 border-r border-[#DEE6EE] flex flex-col justify-between p-6 bg-white overflow-y-auto">
         <div>
           <div className="mb-10 pl-1">
             <BrandLogo size="md" />
@@ -193,8 +193,8 @@ export const DesktopNotificationView: React.FC<NotificationViewProps> = ({
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 bg-white">
-        <header className="h-16 border-b border-[#DEE6EE] px-8 flex items-center justify-between">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 bg-white h-full overflow-hidden">
+        <header className="h-16 shrink-0 border-b border-[#DEE6EE]/70 px-8 flex items-center justify-between bg-white shadow-[0_2px_10px_rgba(33,33,33,0.06)] relative z-10">
           <div className="text-sm font-bold text-[#E53935]">Notifications</div>
 
           <div className="flex items-center gap-4">
@@ -211,7 +211,7 @@ export const DesktopNotificationView: React.FC<NotificationViewProps> = ({
           </div>
         </header>
 
-        <div className="p-8 flex-1 flex flex-col overflow-y-auto">
+        <div className="p-8 flex-1 min-h-0 flex flex-col overflow-y-auto">
           <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-[#DEE6EE]">
             <div>
               <h2 className="text-2xl font-bold text-[#212121] tracking-tight">

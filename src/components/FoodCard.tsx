@@ -37,33 +37,37 @@ export const FoodCard: React.FC<FoodCardProps> = ({ item, onClick, compact = fal
 
       {/* Card Info */}
       <div className="pt-2.5 pb-1 px-0.5 flex flex-col">
-        <div className="flex items-start justify-between gap-2">
+        {/* Row with joint name on the left and rating on the far right */}
+        <div className="flex items-center justify-between gap-2">
           <h3
-            className={`font-bold text-[#212121] leading-snug truncate group-hover:text-[#FF6347] transition-colors ${
-              compact ? 'text-xs sm:text-sm' : 'text-sm sm:text-base'
+            className={`font-bold text-[#212121] leading-snug truncate min-w-0 flex-1 group-hover:text-[#FF6347] transition-colors ${
+              compact ? 'text-xs sm:text-sm' : 'text-sm sm:text-base lg:text-xl'
             }`}
             title={item.name}
           >
             {item.name}
           </h3>
-        </div>
-
-        {/* Row with location on the left (truncated with ellipsis if too long) and rating on the far right */}
-        <div className="flex items-center justify-between gap-1.5 mt-0.5">
-          <div className="flex items-center gap-1 text-[#757575] font-normal min-w-0 flex-1">
-            <MapPin className="w-3 h-3 text-[#B5B5B5] shrink-0" />
-            <p className={`truncate ${compact ? 'text-[11px]' : 'text-xs'}`} title={item.location}>
-              {item.location}
-            </p>
-          </div>
 
           <div
-            className="flex items-center gap-1 shrink-0 text-[#212121] font-semibold pl-1 tabular-nums"
+            className="flex items-center gap-1 shrink-0 text-[#212121] font-semibold tabular-nums"
             title={`Rating: ${item.rating.toFixed(1)} out of 5`}
           >
-            <Star className="w-3 h-3 text-[#FFC300] fill-[#FFC300] shrink-0" />
-            <span className={compact ? 'text-[11px]' : 'text-xs'}>{item.rating.toFixed(1)}</span>
+            <Star className={`${compact ? 'w-3 h-3' : 'w-3.5 h-3.5 lg:w-4 lg:h-4'} text-[#FFC300] fill-[#FFC300] shrink-0`} />
+            <span className={compact ? 'text-[11px]' : 'text-xs lg:text-sm'}>
+              {item.rating.toFixed(1)}
+            </span>
           </div>
+        </div>
+
+        {/* Location row (truncated with ellipsis if too long) */}
+        <div className="flex items-center gap-1 text-[#757575] font-normal min-w-0 mt-0.5">
+          <MapPin className={`${compact ? 'w-3 h-3' : 'w-3 h-3 lg:w-4 lg:h-4'} text-[#B5B5B5] shrink-0`} />
+          <p
+            className={`truncate ${compact ? 'text-[11px]' : 'text-xs lg:text-base'}`}
+            title={item.location}
+          >
+            {item.location}
+          </p>
         </div>
       </div>
     </div>

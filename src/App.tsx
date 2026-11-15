@@ -365,7 +365,7 @@ export default function App() {
   // VIEW: MAIN APPLICATION (Pure Responsive Layout)
   // =========================================================================
   return (
-    <div className="min-h-screen bg-[#F4F7FA] text-[#212121] font-sans flex flex-col">
+    <div className="min-h-screen lg:h-screen lg:overflow-hidden bg-[#F4F7FA] text-[#212121] font-sans flex flex-col">
       {/* Toast Notification */}
       {orderToast && (
         <div className="fixed bottom-20 lg:bottom-6 right-4 lg:right-6 z-50 flex items-center gap-2.5 bg-[#212121] text-white text-xs px-4 py-3 rounded-xl shadow-2xl border border-[#FF6347]/40 animate-in fade-in slide-in-from-bottom-3 duration-200 max-w-sm">
@@ -383,9 +383,9 @@ export default function App() {
       {/* =====================================================================
           DESKTOP VIEW (Visible on lg and larger screens)
          ===================================================================== */}
-      <div className="hidden lg:flex flex-1 w-full">
+      <div className="hidden lg:flex flex-1 min-h-0 h-screen w-full overflow-hidden">
         {userRole === 'nsp' ? (
-          <div className="w-full flex-1">
+          <div className="w-full flex-1 min-h-0 overflow-y-auto">
             <NspOrderHistory
               currentUser={currentUser}
               orders={orders}
@@ -396,7 +396,7 @@ export default function App() {
             />
           </div>
         ) : (
-          <div className="w-full flex-1 relative">
+          <div className="w-full flex-1 min-h-0 h-full overflow-hidden relative">
             {desktopNavTab === 'home' && (
               <DesktopHome
                 currentUser={currentUser}

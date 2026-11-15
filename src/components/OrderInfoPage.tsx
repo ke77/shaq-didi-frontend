@@ -31,6 +31,9 @@ export const AVAILABLE_PERSONNEL = [
   { id: 'p5', name: 'Yaw Darko', role: 'NSP - Food Logistics', status: 'Available' },
 ];
 
+const AMOUNT_PRESETS = ['20', '35', '50', '75', '100'] as const;
+const NOTE_PRESETS = ['Extra pepper', 'No onions', 'Less oil', 'Call on arrival'] as const;
+
 export const OrderInfoPage: React.FC<OrderInfoPageProps> = ({
   item,
   onBack,
@@ -199,7 +202,7 @@ export const OrderInfoPage: React.FC<OrderInfoPageProps> = ({
 
           {/* Order Form */}
           <form onSubmit={handleOrderNowClick} className="mt-5 space-y-4">
-            {/* Field 1: Amount */}
+            {/* Field 1: Amount + Quick Preset Tabs */}
             <div>
               <label className="block text-xs sm:text-sm font-semibold text-[#E53935] mb-1.5">
                 Amount
@@ -224,12 +227,34 @@ export const OrderInfoPage: React.FC<OrderInfoPageProps> = ({
                   }`}
                 />
               </div>
+              <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                {AMOUNT_PRESETS.map((preset) => {
+                  const isActive = amount.trim() === preset;
+                  return (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => {
+                        setAmount(preset);
+                        if (errors.amount) setErrors((prev) => ({ ...prev, amount: undefined }));
+                      }}
+                      className={`px-2.5 py-1 rounded-lg border text-[11px] font-semibold tabular-nums transition-all cursor-pointer ${
+                        isActive
+                          ? 'bg-[#FFEBE7] text-[#E53935] border-[#FF6E6A]/60'
+                          : 'bg-[#F4F7FA] text-[#757575] border-[#DEE6EE] hover:border-[#CDD5E1] hover:text-[#212121]'
+                      }`}
+                    >
+                      GH₵ {preset}
+                    </button>
+                  );
+                })}
+              </div>
               {errors.amount && (
                 <p className="text-[11px] text-[#E53935] mt-1 font-medium">{errors.amount}</p>
               )}
             </div>
 
-            {/* Field 2: Leave a Note */}
+            {/* Field 2: Leave a Note + Quick Preset Tabs */}
             <div>
               <label className="block text-xs sm:text-sm font-semibold text-[#E53935] mb-1.5">
                 Leave a Note
@@ -241,6 +266,37 @@ export const OrderInfoPage: React.FC<OrderInfoPageProps> = ({
                 onChange={(e) => setNotes(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border border-[#CDD5E1] text-xs sm:text-sm text-[#212121] placeholder:text-[#B5B5B5] bg-white transition-colors focus:outline-none focus:border-[#FF6347] focus:ring-1 focus:ring-[#FF6347] resize-none"
               />
+              <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                {NOTE_PRESETS.map((preset) => {
+                  const parts = notes
+                    .split(',')
+                    .map((s) => s.trim())
+                    .filter(Boolean);
+                  const isActive = parts.some((p) => p.toLowerCase() === preset.toLowerCase());
+                  return (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => {
+                        if (isActive) {
+                          setNotes(
+                            parts.filter((p) => p.toLowerCase() !== preset.toLowerCase()).join(', ')
+                          );
+                        } else {
+                          setNotes(parts.length > 0 ? `${parts.join(', ')}, ${preset}` : preset);
+                        }
+                      }}
+                      className={`px-2.5 py-1 rounded-lg border text-[11px] font-medium transition-all cursor-pointer ${
+                        isActive
+                          ? 'bg-[#FFEBE7] text-[#E53935] border-[#FF6E6A]/60 font-semibold'
+                          : 'bg-[#F4F7FA] text-[#757575] border-[#DEE6EE] hover:border-[#CDD5E1] hover:text-[#212121]'
+                      }`}
+                    >
+                      {preset}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Field 3: Select available Personnel */}

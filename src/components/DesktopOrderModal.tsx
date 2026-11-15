@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { FoodJointItem, MenuItem } from '../data/foodJoints';
 import { ChevronDown, Check, UserCheck, MapPin, Star, Clock, ArrowLeft } from 'lucide-react';
 import { AVAILABLE_PERSONNEL, OrderInfoSubmitData } from './OrderInfoPage';
@@ -9,6 +10,9 @@ interface DesktopOrderModalProps {
   onClose: () => void;
   onSubmitOrder: (data: OrderInfoSubmitData) => void;
 }
+
+const AMOUNT_PRESETS = ['20', '35', '50', '75', '100'] as const;
+const NOTE_PRESETS = ['Extra pepper', 'No onions', 'Less oil', 'Call on arrival'] as const;
 
 export const DesktopOrderModal: React.FC<DesktopOrderModalProps> = ({
   isOpen,
@@ -39,7 +43,16 @@ export const DesktopOrderModal: React.FC<DesktopOrderModalProps> = ({
     }
   }, [isOpen, item]);
 
-  if (!isOpen || !item) return null;
+  useEffect(() => {
+    if (!isOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isOpen]);
+
+  if (!isOpen || !item || typeof document === 'undefined') return null;
 
   const handleSelectMenu = (menuItem: MenuItem) => {
     setSelectedMenuItem(menuItem);
@@ -91,15 +104,15 @@ export const DesktopOrderModal: React.FC<DesktopOrderModalProps> = ({
 
   const displayPersonnelName = selectedPersonnel ? selectedPersonnel.split(' (')[0] : 'Unassigned';
 
-  return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-[#212121]/45 backdrop-blur-[2px] animate-in fade-in duration-200 select-none overflow-y-auto">
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#212121]/45 backdrop-blur-[2px] select-none">
       {/* Click outside backdrop to close */}
-      <div className="absolute inset-0" onClick={onClose} />
+      <div className="fixed inset-0" onClick={onClose} />
 
-      {/* Borderless Modal Dialog Card */}
-      <div className="relative z-10 w-full max-w-[560px] bg-white rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150 my-auto">
+      {/* Borderless Modal Dialog Card centered in viewport */}
+      <div className="relative z-10 w-full max-w-[560px] max-h-[90vh] flex flex-col bg-white rounded-2xl shadow-2xl overflow-hidden">
         {/* Top Food Image Banner with Joint Name & Address */}
-        <div className="relative w-full h-40 sm:h-44 bg-[#212121] overflow-hidden">
+        <div className="relative w-full h-40 sm:h-44 shrink-0 bg-[#212121] overflow-hidden">
           <img
             src={item.image}
             alt={item.name}
@@ -133,7 +146,7 @@ export const DesktopOrderModal: React.FC<DesktopOrderModalProps> = ({
         </div>
 
         {step === 'form' ? (
-          <form onSubmit={handleReviewSummary} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+          <form onSubmit={handleReviewSummary} className="p-6 space-y-4 flex-1 overflow-y-auto">
             {/* Available Menu (PS Story 4) */}
             <div>
               <h3 className="text-xs font-bold text-[#212121] mb-2">
@@ -170,7 +183,7 @@ export const DesktopOrderModal: React.FC<DesktopOrderModalProps> = ({
               </div>
             </div>
 
-            {/* Amount Field (clean, no helper tags) */}
+            {/* Amount Field + Quick Preset Tabs */}
             <div>
               <label className="block text-xs sm:text-sm font-semibold text-[#E53935] mb-1.5">
                 Amount
@@ -195,12 +208,34 @@ export const DesktopOrderModal: React.FC<DesktopOrderModalProps> = ({
                   }`}
                 />
               </div>
+              <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                {AMOUNT_PRESETS.map((preset) => {
+                  const isActive = amount.trim() === preset;
+                  return (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => {
+                        setAmount(preset);
+                        if (errors.amount) setErrors((prev) => ({ ...prev, amount: undefined }));
+                      }}
+                      className={`px-2.5 py-1 rounded-lg border text-[11px] font-semibold tabular-nums transition-all cursor-pointer ${
+                        isActive
+                          ? 'bg-[#FFEBE7] text-[#E53935] border-[#FF6E6A]/60'
+                          : 'bg-[#F4F7FA] text-[#757575] border-[#DEE6EE] hover:border-[#CDD5E1] hover:text-[#212121]'
+                      }`}
+                    >
+                      GH₵ {preset}
+                    </button>
+                  );
+                })}
+              </div>
               {errors.amount && (
                 <p className="text-[11px] text-[#E53935] mt-1 font-medium">{errors.amount}</p>
               )}
             </div>
 
-            {/* Leave a Note Field (clean, no helper tags) */}
+            {/* Leave a Note Field + Quick Preset Tabs */}
             <div>
               <label className="block text-xs sm:text-sm font-semibold text-[#E53935] mb-1.5">
                 Leave a Note
@@ -212,6 +247,37 @@ export const DesktopOrderModal: React.FC<DesktopOrderModalProps> = ({
                 onChange={(e) => setNotes(e.target.value)}
                 className="w-full px-4 py-2.5 rounded-lg border border-[#CDD5E1] text-xs sm:text-sm text-[#212121] placeholder:text-[#B5B5B5] bg-white transition-colors focus:outline-none focus:border-[#FF6347] focus:ring-1 focus:ring-[#FF6347] resize-none"
               />
+              <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                {NOTE_PRESETS.map((preset) => {
+                  const parts = notes
+                    .split(',')
+                    .map((s) => s.trim())
+                    .filter(Boolean);
+                  const isActive = parts.some((p) => p.toLowerCase() === preset.toLowerCase());
+                  return (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => {
+                        if (isActive) {
+                          setNotes(
+                            parts.filter((p) => p.toLowerCase() !== preset.toLowerCase()).join(', ')
+                          );
+                        } else {
+                          setNotes(parts.length > 0 ? `${parts.join(', ')}, ${preset}` : preset);
+                        }
+                      }}
+                      className={`px-2.5 py-1 rounded-lg border text-[11px] font-medium transition-all cursor-pointer ${
+                        isActive
+                          ? 'bg-[#FFEBE7] text-[#E53935] border-[#FF6E6A]/60 font-semibold'
+                          : 'bg-[#F4F7FA] text-[#757575] border-[#DEE6EE] hover:border-[#CDD5E1] hover:text-[#212121]'
+                      }`}
+                    >
+                      {preset}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Select available Personnel Field */}
@@ -268,7 +334,7 @@ export const DesktopOrderModal: React.FC<DesktopOrderModalProps> = ({
           </form>
         ) : (
           /* Step 2: Order Summary Confirmation (PS Story 6) */
-          <div className="p-6 space-y-4">
+          <div className="p-6 space-y-4 flex-1 overflow-y-auto">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <button
@@ -355,6 +421,7 @@ export const DesktopOrderModal: React.FC<DesktopOrderModalProps> = ({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
