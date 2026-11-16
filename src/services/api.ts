@@ -1,338 +1,368 @@
-/**
- * ShaQ DIDI - Laravel Standalone Backend Integration Service
- * Configured for Laravel 10/11 REST API with Laravel Sanctum authentication.
- */
-
 import { FoodJointItem, FOOD_ITEMS } from '../data/foodJoints';
 import { OrderRecord } from '../components/OrderHistoryView';
+import { UserProfile } from '../types';
 
-const getEnvVar = (key: string, fallback: string): string => {
-  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
-    return import.meta.env[key] as string;
-  }
-  if (typeof process !== 'undefined' && process.env && process.env[key]) {
-    return process.env[key] as string;
-  }
-  return fallback;
+export const API_BASE_URL: string =
+  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api';
+
+const TOKEN_KEY = 'shaq_didi_token';
+const DEFAULT_STATION = 'Haatso Station';
+
+export type AppRole = 'PS' | 'NSP';
+type BackendRole = 'permanent_staff' | 'national_service';
+
+const ROLE_FROM_BACKEND: Record<BackendRole, AppRole> = {
+  permanent_staff: 'PS',
+  national_service: 'NSP',
 };
 
-export const API_BASE_URL = getEnvVar('VITE_API_BASE_URL', 'http://localhost:8000/api');
-export const SANCTUM_CSRF_URL = getEnvVar(
-  'VITE_SANCTUM_CSRF_URL',
-  'http://localhost:8000/sanctum/csrf-cookie'
-);
+const ROLE_TO_BACKEND: Record<AppRole, BackendRole> = {
+  PS: 'permanent_staff',
+  NSP: 'national_service',
+};
 
-// Storage keys for authentication persistence
-const TOKEN_KEY = 'shaq_didi_token';
-const USER_KEY = 'shaq_didi_user';
-
-export interface LaravelUser {
-  id: number | string;
+interface BackendUser {
+  id: number;
   name: string;
   email: string;
-  phone_number?: string;
-  role: 'PS' | 'NSP';
-  avatar?: string;
-  station?: string;
+  phone_number: string;
+  role: BackendRole;
 }
 
-export interface LaravelAuthResponse {
-  user: LaravelUser;
+interface AuthResponse {
+  message: string;
+  user: BackendUser;
   token: string;
-  message?: string;
+}
+
+interface BackendRestaurant {
+  id: number;
+  name: string;
+  description: string | null;
+  location: string;
+}
+
+interface BackendProduct {
+  id: number;
+  restaurant_id: number;
+  name: string;
+  description: string | null;
+  price: number;
+  is_available: boolean;
+}
+
+interface BackendOrder {
+  id: number;
+  product_id: number;
+  personnel_id: number | null;
+  product_name: string;
+  product_price: number;
+  amount: number;
+  total_price: number;
+  order_note: string | null;
+  status: 'pending' | 'completed' | 'cancelled';
+  created_at: string;
+  product?: BackendProduct & { restaurant?: BackendRestaurant };
+  personnel?: BackendUser | null;
+  user?: BackendUser | null;
+}
+
+interface BackendPersonnel {
+  id: number;
+  name: string;
+  role: BackendRole;
+}
+
+export interface RegisterInput {
+  fullName: string;
+  email: string;
+  password: string;
+  phoneNumber: string;
+  role: AppRole;
 }
 
 export interface CreateOrderPayload {
-  food_item_id: string;
-  amount: string;
-  notes?: string;
-  personnel_id?: string;
-  personnel_name?: string;
+  product_id: number;
+  amount: number;
+  order_note: string;
+  personnel_id: number;
 }
 
 export interface PersonnelMember {
   id: string;
   name: string;
   role: string;
-  status: string;
-  phone_number?: string;
-  station?: string;
 }
 
-export const FALLBACK_PERSONNEL: PersonnelMember[] = [
-  { id: 'p0', name: 'Big Daddy Derrick', role: 'NSP - Haatso Lead Runner', status: 'Available' },
-  { id: 'p1', name: 'Ama Serwaa', role: 'NSP - Station Runner', status: 'Available' },
-  { id: 'p2', name: 'Kofi Mensah', role: 'NSP - Zone A Dispatch', status: 'Available' },
-  { id: 'p3', name: 'Kwame Asante', role: 'NSP - Haatso Central', status: 'Available' },
-  { id: 'p4', name: 'Abena Boateng', role: 'NSP - Station Runner', status: 'Available' },
-  { id: 'p5', name: 'Yaw Darko', role: 'NSP - Food Logistics', status: 'Available' },
-];
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly fieldErrors: Record<string, string[]> = {}
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+export function getErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof ApiError) {
+    return Object.values(error.fieldErrors)[0]?.[0] ?? error.message;
+  }
+  return fallback;
+}
+
+const toUserProfile = (user: BackendUser): UserProfile => ({
+  id: String(user.id),
+  fullName: user.name,
+  email: user.email,
+  phoneNumber: user.phone_number ?? '',
+  role: ROLE_FROM_BACKEND[user.role],
+  station: DEFAULT_STATION,
+});
+
+const getCatalogImage = (index: number): string =>
+  FOOD_ITEMS[index % FOOD_ITEMS.length].image;
+
+const toFoodJoint = (
+  restaurant: BackendRestaurant,
+  products: BackendProduct[],
+  index: number
+): FoodJointItem => {
+  const menu = products
+    .filter((product) => product.is_available)
+    .map((product) => ({
+      id: String(product.id),
+      name: product.name,
+      description: product.description ?? '',
+      priceGHS: product.price / 100,
+    }));
+
+  return {
+    id: String(restaurant.id),
+    name: restaurant.name,
+    jointName: restaurant.name,
+    featuredDish: menu[0]?.name ?? restaurant.name,
+    location: restaurant.location,
+    image: getCatalogImage(index),
+    priceGHS: menu[0]?.priceGHS ?? 0,
+    rating: 0,
+    prepTime: '',
+    description: restaurant.description ?? '',
+    category: 'Other',
+    isPopular: false,
+    isMostOrdered: false,
+    orderCount: 0,
+    menu,
+  };
+};
 
 class ApiService {
-  private token: string | null = null;
-
-  constructor() {
-    if (typeof window !== 'undefined') {
-      this.token = localStorage.getItem(TOKEN_KEY);
-    }
-  }
-
-  public setToken(token: string) {
-    this.token = token;
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(TOKEN_KEY, token);
-    }
-  }
+  private token: string | null =
+    typeof window === 'undefined' ? null : localStorage.getItem(TOKEN_KEY);
+  private onUnauthorized: (() => void) | null = null;
 
   public getToken(): string | null {
-    if (!this.token && typeof window !== 'undefined') {
-      this.token = localStorage.getItem(TOKEN_KEY);
-    }
     return this.token;
   }
 
-  public clearToken() {
+  public setUnauthorizedHandler(handler: (() => void) | null): void {
+    this.onUnauthorized = handler;
+  }
+
+  public clearToken(): void {
     this.token = null;
     if (typeof window !== 'undefined') {
       localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(USER_KEY);
     }
   }
 
-  public setStoredUser(user: LaravelUser) {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(USER_KEY, JSON.stringify(user));
-    }
+  private setToken(token: string): void {
+    this.token = token;
+    localStorage.setItem(TOKEN_KEY, token);
   }
 
-  public getStoredUser(): LaravelUser | null {
-    if (typeof window !== 'undefined') {
-      const data = localStorage.getItem(USER_KEY);
-      if (data) {
-        try {
-          return JSON.parse(data);
-        } catch {
-          return null;
-        }
-      }
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {},
+    authenticated = true
+  ): Promise<T> {
+    const headers = new Headers(options.headers);
+    headers.set('Accept', 'application/json');
+    if (options.body && !(options.body instanceof FormData)) {
+      headers.set('Content-Type', 'application/json');
     }
-    return null;
-  }
 
-  /**
-   * Initializes CSRF protection for Laravel Sanctum SPA authentication
-   */
-  public async initializeCsrfCookie(): Promise<void> {
-    try {
-      await fetch(SANCTUM_CSRF_URL, {
-        method: 'GET',
-        credentials: 'include',
-      });
-    } catch {
-      // Graceful fallback if backend is offline during early development
-    }
-  }
-
-  /**
-   * Core request wrapper supporting JSON headers, Bearer tokens, and error parsing
-   */
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
-    const headers: Record<string, string> = {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      ...(options.headers as Record<string, string>),
-    };
-
-    const token = this.getToken();
+    const token = authenticated ? this.token : null;
     if (token) {
-      headers.Authorization = `Bearer ${token}`;
+      headers.set('Authorization', `Bearer ${token}`);
     }
 
-    const response = await fetch(url, {
-      ...options,
-      headers,
-      credentials: 'include',
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${API_BASE_URL}${endpoint}`, { ...options, headers });
+    } catch {
+      throw new ApiError(
+        'Cannot reach the server. Check your connection and try again.',
+        0
+      );
+    }
+
+    if (response.status === 401 && token) {
+      this.clearToken();
+      this.onUnauthorized?.();
+    }
 
     if (!response.ok) {
-      const errorBody = await response.json().catch(() => ({}));
-      const error = new Error(
-        errorBody.message || `Request failed with status ${response.status}: ${response.statusText}`
+      let body: { message?: string; errors?: Record<string, string[]> } = {};
+      try {
+        body = await response.json();
+      } catch {
+        body = {};
+      }
+      throw new ApiError(
+        body.message ?? `Request failed (${response.status})`,
+        response.status,
+        body.errors ?? {}
       );
-      (error as unknown as { response: { status: number; data: unknown } }).response = {
-        status: response.status,
-        data: errorBody,
-      };
-      throw error;
     }
 
-    return response.json();
-  }
-
-  // ==========================================
-  // Authentication Endpoints (Laravel Sanctum)
-  // ==========================================
-
-  public async login(credentials: { email: string; password: string }): Promise<LaravelAuthResponse> {
-    try {
-      const res = await this.request<LaravelAuthResponse>('/login', {
-        method: 'POST',
-        body: JSON.stringify(credentials),
-      });
-      if (res.token) this.setToken(res.token);
-      if (res.user) this.setStoredUser(res.user);
-      return res;
-    } catch {
-      // Local fallback during standalone UI preview
-      const fallbackUser: LaravelUser = {
-        id: 'usr-1',
-        name: 'Isaiah Amoh Mensah',
-        email: credentials.email,
-        phone_number: '0547016492',
-        role: 'PS',
-        station: 'Haatso Station',
-      };
-      const fallbackToken = 'mock-sanctum-token';
-      this.setToken(fallbackToken);
-      this.setStoredUser(fallbackUser);
-      return { user: fallbackUser, token: fallbackToken };
+    if (response.status === 204) {
+      return undefined as T;
     }
+    return (await response.json()) as T;
   }
 
-  public async register(payload: {
-    fullName: string;
+  public async login(credentials: {
     email: string;
     password: string;
-    phoneNumber: string;
-    role: 'PS' | 'NSP';
-  }): Promise<LaravelAuthResponse> {
-    try {
-      const res = await this.request<LaravelAuthResponse>('/register', {
+  }): Promise<UserProfile> {
+    const response = await this.request<AuthResponse>(
+      '/auth/login',
+      { method: 'POST', body: JSON.stringify(credentials) },
+      false
+    );
+    this.setToken(response.token);
+    return toUserProfile(response.user);
+  }
+
+  public async register(input: RegisterInput): Promise<UserProfile> {
+    const response = await this.request<AuthResponse>(
+      '/auth/register',
+      {
         method: 'POST',
         body: JSON.stringify({
-          name: payload.fullName,
-          email: payload.email,
-          password: payload.password,
-          password_confirmation: payload.password,
-          phone_number: payload.phoneNumber,
-          role: payload.role,
+          role: ROLE_TO_BACKEND[input.role],
+          name: input.fullName,
+          email: input.email,
+          password: input.password,
+          phone_number: input.phoneNumber,
         }),
-      });
-      if (res.token) this.setToken(res.token);
-      if (res.user) this.setStoredUser(res.user);
-      return res;
-    } catch {
-      const fallbackUser: LaravelUser = {
-        id: `usr-${Date.now()}`,
-        name: payload.fullName,
-        email: payload.email,
-        phone_number: payload.phoneNumber,
-        role: payload.role,
-        station: 'Haatso Station',
-      };
-      const fallbackToken = 'mock-sanctum-token';
-      this.setToken(fallbackToken);
-      this.setStoredUser(fallbackUser);
-      return { user: fallbackUser, token: fallbackToken };
-    }
+      },
+      false
+    );
+    this.setToken(response.token);
+    return toUserProfile(response.user);
+  }
+
+  public async getCurrentUser(): Promise<UserProfile> {
+    return toUserProfile(await this.request<BackendUser>('/me'));
   }
 
   public async logout(): Promise<void> {
     try {
-      await this.request('/logout', { method: 'POST' });
-    } catch {
-      // Ignore network errors on logout
+      await this.request('/auth/logout', { method: 'POST' });
     } finally {
       this.clearToken();
     }
   }
 
-  public async getUser(): Promise<LaravelUser> {
-    return this.request<LaravelUser>('/user');
+  public async getFoodJoints(): Promise<FoodJointItem[]> {
+    const [restaurants, products] = await Promise.all([
+      this.request<BackendRestaurant[]>('/restaurants'),
+      this.request<BackendProduct[]>('/products'),
+    ]);
+    return restaurants
+      .map((restaurant, index) =>
+        toFoodJoint(
+          restaurant,
+          products.filter((product) => product.restaurant_id === restaurant.id),
+          index
+        )
+      )
+      .filter((restaurant) => restaurant.menu.length > 0);
   }
 
-  // ==========================================
-  // Orders Endpoints
-  // ==========================================
+  public async getPersonnel(): Promise<PersonnelMember[]> {
+    const personnel = await this.request<BackendPersonnel[]>('/personnel');
+    return personnel.map((person) => ({
+      id: String(person.id),
+      name: person.name,
+      role: ROLE_FROM_BACKEND[person.role] === 'NSP' ? 'National Service Personnel' : 'Permanent Staff',
+    }));
+  }
 
   public async getOrders(): Promise<OrderRecord[]> {
-    try {
-      return await this.request<OrderRecord[]>('/orders');
-    } catch {
-      // Return local orders
-      return [];
-    }
+    const orders = await this.request<BackendOrder[]>('/orders');
+    return orders.map((order) => this.toOrderRecord(order));
   }
 
-  public async getNspAssignedOrders(): Promise<OrderRecord[]> {
-    try {
-      return await this.request<OrderRecord[]>('/nsp/orders');
-    } catch {
-      return [];
-    }
+  public async getTodayOrders(): Promise<OrderRecord[]> {
+    const orders = await this.request<BackendOrder[]>('/orders/today');
+    return orders.map((order) => this.toOrderRecord(order));
   }
 
-  public async createOrder(order: CreateOrderPayload): Promise<OrderRecord> {
-    return this.request<OrderRecord>('/orders', {
+  public async createOrder(payload: CreateOrderPayload): Promise<OrderRecord> {
+    const response = await this.request<{ order: BackendOrder }>('/place-order', {
       method: 'POST',
-      body: JSON.stringify(order),
+      body: JSON.stringify(payload),
     });
+    return this.toOrderRecord(response.order);
   }
 
-  public async updateOrderStatus(
-    orderId: string,
-    status: 'Pending' | 'Completed'
-  ): Promise<{ success: boolean; status: string }> {
-    try {
-      return await this.request<{ success: boolean; status: string }>(`/orders/${orderId}/status`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status }),
-      });
-    } catch {
-      return { success: true, status };
-    }
+  public async completeOrder(orderId: string): Promise<OrderRecord> {
+    const response = await this.request<{ order: BackendOrder }>(
+      `/orders/${encodeURIComponent(orderId)}/complete`,
+      { method: 'PATCH' }
+    );
+    return this.toOrderRecord(response.order);
   }
 
-  // ==========================================
-  // Food Joints & Personnel Endpoints
-  // ==========================================
-
-  public async getFoodJoints(): Promise<FoodJointItem[]> {
-    try {
-      return await this.request<FoodJointItem[]>('/food-joints');
-    } catch {
-      return FOOD_ITEMS;
-    }
+  public async cancelOrder(orderId: string): Promise<OrderRecord> {
+    const response = await this.request<{ order: BackendOrder }>(
+      `/orders/${encodeURIComponent(orderId)}/cancel`,
+      { method: 'PATCH' }
+    );
+    return this.toOrderRecord(response.order);
   }
 
-  /**
-   * Fetches available NSP / dispatch personnel from the Laravel backend (`GET /api/personnel`).
-   * Supports both plain JSON arrays and Laravel API Resource `{ data: [...] }` envelopes.
-   */
-  public async getPersonnel(): Promise<PersonnelMember[]> {
-    try {
-      const response = await this.request<
-        PersonnelMember[] | { data?: Array<Partial<PersonnelMember> & { id: string | number }> }
-      >('/personnel');
-
-      const rawList = Array.isArray(response) ? response : response?.data ?? [];
-      if (!Array.isArray(rawList) || rawList.length === 0) {
-        return FALLBACK_PERSONNEL;
-      }
-
-      return rawList.map((person) => ({
-        id: String(person.id),
-        name: person.name || 'Unnamed Personnel',
-        role: person.role || 'NSP - Dispatch Personnel',
-        status: person.status || 'Available',
-        phone_number: person.phone_number,
-        station: person.station,
-      }));
-    } catch {
-      // Graceful fallback when Laravel backend is offline during standalone UI preview
-      return FALLBACK_PERSONNEL;
+  private toOrderRecord(order: BackendOrder): OrderRecord {
+    const restaurant = order.product?.restaurant;
+    if (!restaurant || !order.product) {
+      throw new ApiError('The API did not return restaurant details for this order.', 502);
     }
+    const item = toFoodJoint(restaurant, [order.product], restaurant.id - 1);
+    const date = new Date(order.created_at);
+
+    return {
+      id: String(order.id),
+      item,
+      menuItemName: order.product_name,
+      quantity: order.amount,
+      totalGHS: order.total_price / 100,
+      amount: (order.total_price / 100).toFixed(2),
+      personnel: order.personnel?.name,
+      staffName: order.user?.name,
+      staffPhone: order.user?.phone_number,
+      notes: order.order_note ?? undefined,
+      date: Number.isNaN(date.getTime()) ? order.created_at : date.toLocaleString(),
+      status:
+        order.status === 'completed'
+          ? 'Completed'
+          : order.status === 'cancelled'
+            ? 'Cancelled'
+            : 'Pending',
+    };
   }
 }
 

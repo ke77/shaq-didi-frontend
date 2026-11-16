@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, AlertCircle } from 'lucide-react';
-import { PersonnelRole } from '../types';
-
 interface SignInFormProps {
-  onSuccess: (data: { email: string; password: string; role?: PersonnelRole }) => void;
+  onSuccess: (data: { email: string; password: string }) => void | Promise<void>;
   onSignUpClick: () => void;
   isMobileLayout?: boolean;
 }
@@ -15,7 +13,6 @@ export const SignInForm: React.FC<SignInFormProps> = ({
 }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [selectedRole, setSelectedRole] = useState<PersonnelRole>('PS');
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -39,14 +36,15 @@ export const SignInForm: React.FC<SignInFormProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
       setIsSubmitting(true);
-      setTimeout(() => {
+      try {
+        await onSuccess({ email: email.trim(), password });
+      } finally {
         setIsSubmitting(false);
-        onSuccess({ email: email.trim(), password, role: selectedRole });
-      }, 450);
+      }
     }
   };
 
@@ -65,32 +63,6 @@ export const SignInForm: React.FC<SignInFormProps> = ({
           <p className="text-xs text-[#757575] mt-1">
             Sign in to access your dashboard
           </p>
-        </div>
-
-        {/* Account Portal Selector (automatically overridden if email matches a registered account) */}
-        <div className="grid grid-cols-2 gap-2 p-1 bg-[#F4F7FA] rounded-lg border border-[#DEE6EE] mb-5">
-          <button
-            type="button"
-            onClick={() => setSelectedRole('PS')}
-            className={`py-2 px-3 rounded-md text-xs font-semibold transition-all cursor-pointer ${
-              selectedRole === 'PS'
-                ? 'bg-white text-[#E53935] shadow-xs border border-[#DEE6EE]/60'
-                : 'text-[#757575] hover:text-[#212121]'
-            }`}
-          >
-            Permanent Staff
-          </button>
-          <button
-            type="button"
-            onClick={() => setSelectedRole('NSP')}
-            className={`py-2 px-3 rounded-md text-xs font-semibold transition-all cursor-pointer ${
-              selectedRole === 'NSP'
-                ? 'bg-white text-[#E53935] shadow-xs border border-[#DEE6EE]/60'
-                : 'text-[#757575] hover:text-[#212121]'
-            }`}
-          >
-            National Service Personnel
-          </button>
         </div>
 
         {/* Inputs */}

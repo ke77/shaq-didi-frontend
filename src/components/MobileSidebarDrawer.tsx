@@ -11,7 +11,6 @@ import {
   Bell,
   LogOut,
   User,
-  ArrowLeftRight,
   X,
   ChevronRight,
 } from 'lucide-react';
@@ -23,7 +22,6 @@ export interface MobileSidebarDrawerProps {
   activeTab: 'home' | 'history' | 'profile';
   onNavigateTab: (tab: 'home' | 'history' | 'profile') => void;
   onOpenNotifications?: () => void;
-  onToggleRole?: () => void;
   onLogout: () => void;
   orderCount?: number;
   unreadNotificationCount?: number;
@@ -44,7 +42,6 @@ export const MobileSidebarDrawer: React.FC<MobileSidebarDrawerProps> = ({
   activeTab,
   onNavigateTab,
   onOpenNotifications,
-  onToggleRole,
   onLogout,
   orderCount = 0,
   unreadNotificationCount = 0,
@@ -187,25 +184,6 @@ export const MobileSidebarDrawer: React.FC<MobileSidebarDrawerProps> = ({
                 <User className="w-4 h-4 shrink-0" />
                 <span>My Profile</span>
               </button>
-
-              {onToggleRole && (
-                <div className="pt-3 pb-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onToggleRole();
-                      onClose();
-                    }}
-                    className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-[#757575] hover:text-[#E53935] bg-[#F4F7FA] hover:bg-[#FFEBE7]/50 border border-dashed border-[#CDD5E1] transition-all cursor-pointer"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <ArrowLeftRight className="w-3.5 h-3.5 text-[#FF6347]" />
-                      <span>NSP Dispatch View</span>
-                    </div>
-                    <span className="text-[10px] text-[#B5B5B5]">Switch →</span>
-                  </button>
-                </div>
-              )}
 
               <button
                 type="button"

@@ -1,6 +1,6 @@
 import React from 'react';
 import { FoodJointItem } from '../data/foodJoints';
-import { CheckCircle2, Clock, MapPin, ArrowRight } from 'lucide-react';
+import { CheckCircle2, Clock, MapPin, ArrowRight, XCircle } from 'lucide-react';
 
 export interface OrderRecord {
   id: string;
@@ -14,7 +14,7 @@ export interface OrderRecord {
   staffPhone?: string;
   notes?: string;
   date: string;
-  status: 'Pending' | 'Completed';
+  status: 'Pending' | 'Completed' | 'Cancelled';
 }
 
 interface OrderHistoryViewProps {
@@ -79,14 +79,14 @@ export const OrderHistoryView: React.FC<OrderHistoryViewProps> = ({
                       className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                         order.status === 'Completed'
                           ? 'bg-emerald-50 text-emerald-700'
-                          : 'bg-[#FFA500]/15 text-[#DB8F05]'
+                          : order.status === 'Cancelled'
+                            ? 'bg-red-50 text-red-700'
+                            : 'bg-[#FFA500]/15 text-[#DB8F05]'
                       }`}
                     >
-                      {order.status === 'Completed' ? (
-                        <CheckCircle2 className="w-3 h-3" />
-                      ) : (
-                        <Clock className="w-3 h-3" />
-                      )}
+                      {order.status === 'Completed' ? <CheckCircle2 className="w-3 h-3" /> :
+                        order.status === 'Cancelled' ? <XCircle className="w-3 h-3" /> :
+                          <Clock className="w-3 h-3" />}
                       {order.status}
                     </span>
                   </div>

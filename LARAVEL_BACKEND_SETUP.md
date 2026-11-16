@@ -1,138 +1,71 @@
-# ShaQ DIDI - Laravel Backend Integration Guide
+# ShaQ DIDI Frontend + Laravel API
 
-This frontend is configured to communicate with a standalone Laravel REST API. Follow these instructions to set up your backend.
+The React app in this project calls the Laravel API in the sibling `shaq-didi` project. The integration uses Sanctum personal access tokens; it does not use cookie-based SPA authentication or a CSRF-cookie request.
 
----
+## Local configuration
 
-## 1. Environment Configuration
+Frontend `.env`:
 
-### Frontend (`.env`)
 ```env
-VITE_API_BASE_URL="http://localhost:8000/api"
-VITE_LARAVEL_URL="http://localhost:8000"
-VITE_APP_NAME="ShaQ DIDI"
-VITE_SANCTUM_CSRF_URL="http://localhost:8000/sanctum/csrf-cookie"
+VITE_API_BASE_URL=http://localhost:8000/api
 ```
 
-### Laravel (`.env`)
+Laravel `.env`:
+
 ```env
-APP_NAME="ShaQ DIDI Backend"
 APP_URL=http://localhost:8000
-FRONTEND_URL=http://localhost:3000
-SANCTUM_STATEFUL_DOMAINS=localhost:3000
-SESSION_DOMAIN=localhost
 ```
 
----
+The backend CORS configuration currently allows the frontend dev origins on ports `3000` and `5173`. The frontend Vite script runs on port `3000`.
 
-## 2. CORS Configuration (`config/cors.php`)
+## API contract
 
-Ensure `config/cors.php` accepts requests and credentials from `http://localhost:3000`:
+| Purpose | Endpoint | Access |
+|---|---|---|
+| Register | `POST /api/auth/register` | Public |
+| Sign in | `POST /api/auth/login` | Public |
+| Catalogue products | `GET /api/products` | Authenticated bearer token |
+| Current profile | `GET /api/me` | Bearer token |
+| Sign out | `POST /api/auth/logout` | Bearer token |
+| Restaurants | `GET /api/restaurants` | Bearer token |
+| Restaurant menu | `GET /api/restaurants/{restaurant}/products` | Bearer token |
+| Dispatch personnel | `GET /api/personnel` | Permanent Staff bearer token |
+| Place order | `POST /api/place-order` | Permanent Staff bearer token |
+| Order history | `GET /api/orders` | Bearer token; scoped by role |
+| Complete assigned order | `PATCH /api/orders/{order}/complete` | Assigned NSP bearer token |
+| Cancel pending order | `PATCH /api/orders/{order}/cancel` | Owning Permanent Staff bearer token |
+| Today's assigned orders | `GET /api/orders/today` | National Service bearer token |
 
-```php
-return [
-    'paths' => ['api/*', 'sanctum/csrf-cookie'],
-    'allowed_methods' => ['*'],
-    'allowed_origins' => ['http://localhost:3000'],
-    'allowed_origins_patterns' => [],
-    'allowed_headers' => ['*'],
-    'exposed_headers' => [],
-    'max_age' => 0,
-    'supports_credentials' => true,
-];
-```
+After login or registration, the API returns a personal access token. The frontend stores it and sends `Authorization: Bearer <token>` on protected requests. The server remains authoritative for the user's role and permissions.
 
----
+An order request uses product and personnel IDs from the API:
 
-## 3. Database Migration Schemas
-
-### 3.1 Users Migration
-```php
-Schema::create('users', function (Blueprint $table) {
-    $table->id();
-    $table->string('name');
-    $table->string('email')->unique();
-    $table->string('password');
-    $table->string('phone_number')->nullable();
-    $table->enum('role', ['PS', 'NSP'])->default('PS'); // PS = Permanent Staff, NSP = National Service Personnel
-    $table->string('station')->default('Haatso Station');
-    $table->rememberToken();
-    $table->timestamps();
-});
-```
-
-### 3.2 Orders Migration
-```php
-Schema::create('orders', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('user_id')->constrained()->cascadeOnDelete(); // Permanent Staff customer
-    $table->foreignId('nsp_id')->nullable()->constrained('users')->nullOnDelete(); // Assigned NSP runner
-    $table->string('food_item_id');
-    $table->string('food_item_name');
-    $table->string('location')->default('Haatso Station');
-    $table->string('image')->nullable();
-    $table->decimal('amount', 8, 2); // Custom price set by Permanent Staff
-    $table->text('notes')->nullable();
-    $table->enum('status', ['Preparing', 'Dispatched', 'Delivered'])->default('Preparing');
-    $table->timestamps();
-});
-```
-
----
-
-## 4. API Routes (`routes/api.php`)
-
-```php
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\OrderController;
-use App\Http\Controllers\FoodJointController;
-use App\Http\Controllers\PersonnelController;
-use Illuminate\Support\Facades\Route;
-
-// Public routes
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
-Route::get('/food-joints', [FoodJointController::class, 'index']);
-
-// Protected routes (Laravel Sanctum)
-Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/user', [AuthController::class, 'user']);
-
-    // Available NSP dispatch personnel dropdown
-    Route::get('/personnel', [PersonnelController::class, 'index']);
-
-    // Permanent Staff orders
-    Route::get('/orders', [OrderController::class, 'index']);
-    Route::post('/orders', [OrderController::class, 'store']);
-
-    // NSP assigned orders
-    Route::get('/nsp/orders', [OrderController::class, 'nspAssignedOrders']);
-    Route::patch('/orders/{id}/status', [OrderController::class, 'updateStatus']);
-});
-```
-
-### 4.1 Expected `GET /api/personnel` Response Format
-Return either a JSON array or a Laravel Resource `{ "data": [...] }` with objects containing:
 ```json
-[
-  {
-    "id": 1,
-    "name": "Ama Serwaa",
-    "role": "NSP - Station Runner",
-    "status": "Available"
-  }
-]
+{
+  "product_id": 1,
+  "amount": 2,
+  "order_note": "Call on arrival",
+  "personnel_id": 3
+}
 ```
 
----
+Here, `amount` is the integer quantity (1–500), not a user-entered price. The backend determines the product price and total. Product and order prices are stored in pesewas; the frontend displays them in Ghana cedis.
 
-## 5. Starting the Backend
+## Run locally
 
-```bash
-# 1. Run migrations
-php artisan migrate
+From `shaq-didi`:
 
-# 2. Serve the Laravel API on port 8000
+```powershell
+php artisan migrate --seed
 php artisan serve --port=8000
 ```
+
+From `shaq-didi-frontend`:
+
+```powershell
+npm run dev
+```
+
+For local development only, the seed data creates `ps@example.com` and `nsp@example.com`; both use the factory password `password`.
+
+The frontend registers and signs in against the API, loads the authenticated user's catalogue, personnel list, and role-scoped order history, then sends all order changes to the backend.

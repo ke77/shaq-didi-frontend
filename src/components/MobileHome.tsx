@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { BrandLogo } from './BrandLogo';
 import { FoodCard } from './FoodCard';
-import { FOOD_ITEMS, FoodJointItem } from '../data/foodJoints';
+import { FoodJointItem } from '../data/foodJoints';
 import { MobileSidebarDrawer } from './MobileSidebarDrawer';
 import { UserProfile } from '../types';
 import { Search, Bell, Menu, Flame, TrendingUp } from 'lucide-react';
@@ -9,27 +9,27 @@ import { Search, Bell, Menu, Flame, TrendingUp } from 'lucide-react';
 interface MobileHomeProps {
   currentUser: UserProfile;
   onSelectFood: (item: FoodJointItem) => void;
+  foodItems: FoodJointItem[];
   orderCount: number;
   activeTab: 'home' | 'history' | 'profile';
   onTabChange: (tab: 'home' | 'history' | 'profile') => void;
   onLogout: () => void;
   onOpenNotifications?: () => void;
   unreadNotificationCount?: number;
-  onToggleRole?: () => void;
 }
 
-const CATEGORIES = ['All', 'Popular', 'Most Ordered', 'Local Dishes', 'Rice & Bowls', 'Grills'] as const;
+const CATEGORIES = ['All'] as const;
 
 export const MobileHome: React.FC<MobileHomeProps> = ({
   currentUser,
   onSelectFood,
+  foodItems,
   orderCount,
   activeTab,
   onTabChange,
   onLogout,
   onOpenNotifications,
   unreadNotificationCount = 1,
-  onToggleRole,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -37,7 +37,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({
 
   const firstName = currentUser.fullName.split(' ')[0] || 'Isaiah';
 
-  const filteredItems = FOOD_ITEMS.filter((item) => {
+  const filteredItems = foodItems.filter((item) => {
     const q = searchQuery.toLowerCase().trim();
     const matchesSearch =
       !q ||
@@ -56,11 +56,14 @@ export const MobileHome: React.FC<MobileHomeProps> = ({
     return matchesSearch && matchesCategory;
   });
 
-  const showCategorizedDashboard = selectedCategory === 'All' && !searchQuery.trim();
-  const popularJoints = FOOD_ITEMS.filter((item) => item.isPopular);
-  const mostOrderedJoints = [...FOOD_ITEMS]
+  const popularJoints = foodItems.filter((item) => item.isPopular);
+  const mostOrderedJoints = [...foodItems]
     .filter((item) => item.isMostOrdered)
     .sort((a, b) => b.orderCount - a.orderCount);
+  const showCategorizedDashboard =
+    selectedCategory === 'All' &&
+    !searchQuery.trim() &&
+    (popularJoints.length > 0 || mostOrderedJoints.length > 0);
 
   return (
     <div className="w-full bg-white flex flex-col min-h-screen select-none relative">
@@ -207,7 +210,9 @@ export const MobileHome: React.FC<MobileHomeProps> = ({
           </div>
         ) : (
           <div className="py-12 text-center text-[#757575] text-xs">
-            <p className="font-semibold text-[#212121]">No food joints match "{searchQuery}"</p>
+            <p className="font-semibold text-[#212121]">
+              {foodItems.length === 0 ? 'No food joints are available yet.' : `No food joints match "${searchQuery}"`}
+            </p>
             <button
               onClick={() => {
                 setSearchQuery('');
@@ -229,7 +234,6 @@ export const MobileHome: React.FC<MobileHomeProps> = ({
         activeTab={activeTab}
         onNavigateTab={onTabChange}
         onOpenNotifications={onOpenNotifications}
-        onToggleRole={onToggleRole}
         onLogout={onLogout}
         orderCount={orderCount}
         unreadNotificationCount={unreadNotificationCount}

@@ -17,7 +17,7 @@ export interface FoodJointItem {
   rating: number;
   prepTime: string;
   description: string;
-  category: 'Local Dishes' | 'Rice & Bowls' | 'Grills';
+  category: 'Local Dishes' | 'Rice & Bowls' | 'Grills' | 'Other';
   isPopular: boolean;
   isMostOrdered: boolean;
   orderCount: number;

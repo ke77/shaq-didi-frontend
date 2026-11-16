@@ -16,14 +16,15 @@ import {
   X,
   Phone,
   Calendar,
+  XCircle,
 } from 'lucide-react';
 
 interface NspOrderHistoryProps {
   currentUser: UserProfile;
   orders: OrderRecord[];
-  onUpdateStatus: (orderId: string, status: 'Pending' | 'Completed') => void;
-  onRefresh?: () => void;
-  onToggleRole?: () => void;
+  todayOrders: OrderRecord[];
+  onUpdateStatus: (orderId: string, status: 'Pending' | 'Completed') => boolean | Promise<boolean>;
+  onRefresh?: () => void | Promise<void>;
   onLogout?: () => void;
 }
 
@@ -38,9 +39,9 @@ const getInitials = (name: string) =>
 export const NspOrderHistory: React.FC<NspOrderHistoryProps> = ({
   currentUser,
   orders,
+  todayOrders,
   onUpdateStatus,
   onRefresh,
-  onToggleRole,
   onLogout,
 }) => {
   const [activeTab, setActiveTab] = useState<'today' | 'previous'>('today');
@@ -51,22 +52,23 @@ export const NspOrderHistory: React.FC<NspOrderHistoryProps> = ({
   const initials = getInitials(currentUser.fullName);
 
   // "Today" shows pending assigned orders; "Previous Orders" shows Completed orders (NSP Story 2 & 3)
-  const todayOrders = orders.filter((o) => o.status === 'Pending');
-  const previousOrders = orders.filter((o) => o.status === 'Completed');
+  const displayedTodayOrders = todayOrders.filter((order) => order.status === 'Pending');
+  const previousOrders = orders.filter((o) => o.status !== 'Pending');
 
-  const displayedOrders = activeTab === 'today' ? todayOrders : previousOrders;
+  const displayedOrders = activeTab === 'today' ? displayedTodayOrders : previousOrders;
 
-  const handleRefreshClick = () => {
+  const handleRefreshClick = async () => {
     setIsRefreshing(true);
-    if (onRefresh) onRefresh();
-    setTimeout(() => {
+    try {
+      await onRefresh?.();
+    } finally {
       setIsRefreshing(false);
-    }, 550);
+    }
   };
 
-  const handleMarkCompleted = (orderId: string) => {
-    onUpdateStatus(orderId, 'Completed');
-    if (selectedOrder?.id === orderId) {
+  const handleMarkCompleted = async (orderId: string) => {
+    const updated = await onUpdateStatus(orderId, 'Completed');
+    if (updated && selectedOrder?.id === orderId) {
       setSelectedOrder((prev) => (prev ? { ...prev, status: 'Completed' } : null));
     }
   };
@@ -83,16 +85,6 @@ export const NspOrderHistory: React.FC<NspOrderHistoryProps> = ({
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          {onToggleRole && (
-            <button
-              type="button"
-              onClick={onToggleRole}
-              className="text-xs font-semibold px-2.5 sm:px-3 py-1.5 rounded-lg border border-[#DEE6EE] text-[#757575] hover:text-[#E53935] hover:border-[#FF6347]/40 hover:bg-[#FFEBE7]/40 transition-colors cursor-pointer whitespace-nowrap"
-            >
-              Staff View
-            </button>
-          )}
-
           <div className="relative">
             <button
               type="button"
@@ -101,7 +93,7 @@ export const NspOrderHistory: React.FC<NspOrderHistoryProps> = ({
               title="Notifications"
             >
               <Bell className="w-5 h-5" />
-              {todayOrders.length > 0 && (
+              {displayedTodayOrders.length > 0 && (
                 <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-[#FF6347] border-2 border-white rounded-full" />
               )}
             </button>
@@ -111,7 +103,7 @@ export const NspOrderHistory: React.FC<NspOrderHistoryProps> = ({
                 <div className="text-xs font-bold text-[#212121] pb-2 border-b border-[#DEE6EE] flex items-center justify-between">
                   <span>Assigned Order Alerts</span>
                   <span className="text-[10px] text-[#DB8F05] font-semibold">
-                    {todayOrders.length} pending
+                    {displayedTodayOrders.length} pending
                   </span>
                 </div>
                 <div className="space-y-2 mt-2 text-xs">
@@ -120,8 +112,8 @@ export const NspOrderHistory: React.FC<NspOrderHistoryProps> = ({
                     <div>
                       <p className="font-semibold text-[#212121]">Dispatch Queue</p>
                       <p className="text-[11px] text-[#757575]">
-                        {todayOrders.length > 0
-                          ? `You have ${todayOrders.length} pending order(s) for today.`
+                        {displayedTodayOrders.length > 0
+                          ? `You have ${displayedTodayOrders.length} pending order(s) for today.`
                           : 'All assigned orders have been completed.'}
                       </p>
                     </div>
@@ -175,7 +167,7 @@ export const NspOrderHistory: React.FC<NspOrderHistoryProps> = ({
                 : 'text-[#757575] hover:text-[#212121] hover:bg-[#F4F7FA]'
             }`}
           >
-            Today ({todayOrders.length})
+            Today ({displayedTodayOrders.length})
           </button>
           <button
             type="button"
@@ -247,14 +239,14 @@ export const NspOrderHistory: React.FC<NspOrderHistoryProps> = ({
                         className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                           order.status === 'Completed'
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : 'bg-[#FFA500]/15 text-[#DB8F05] border border-[#FFA500]/30'
+                            : order.status === 'Cancelled'
+                              ? 'bg-red-50 text-red-700 border border-red-200'
+                              : 'bg-[#FFA500]/15 text-[#DB8F05] border border-[#FFA500]/30'
                         }`}
                       >
-                        {order.status === 'Completed' ? (
-                          <CheckCircle2 className="w-3 h-3" />
-                        ) : (
-                          <Clock className="w-3 h-3" />
-                        )}
+                        {order.status === 'Completed' ? <CheckCircle2 className="w-3 h-3" /> :
+                          order.status === 'Cancelled' ? <XCircle className="w-3 h-3" /> :
+                            <Clock className="w-3 h-3" />}
                         {order.status}
                       </span>
                     </div>

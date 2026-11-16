@@ -16,6 +16,7 @@ interface ConfirmOrderDrawerProps {
   personnel: string;
   isSubmitting?: boolean;
   isSuccess?: boolean;
+  error?: string | null;
 }
 
 export const ConfirmOrderDrawer: React.FC<ConfirmOrderDrawerProps> = ({
@@ -30,6 +31,7 @@ export const ConfirmOrderDrawer: React.FC<ConfirmOrderDrawerProps> = ({
   personnel,
   isSubmitting = false,
   isSuccess = false,
+  error,
 }) => {
   const formattedAmount = amount
     ? amount.toUpperCase().includes('GHC') || amount.toUpperCase().includes('GH')
@@ -129,6 +131,11 @@ export const ConfirmOrderDrawer: React.FC<ConfirmOrderDrawerProps> = ({
                 <span className="font-bold text-[#212121] tracking-tight">Amount</span>
                 <span className="font-bold text-[#E53935] tabular-nums">{formattedAmount}</span>
               </div>
+              {error && (
+                <p role="alert" className="mb-3 text-xs text-[#E53935]">
+                  {error}
+                </p>
+              )}
 
               <div>
                 <span className="font-bold text-[#212121] text-xs block mb-1 tracking-tight">

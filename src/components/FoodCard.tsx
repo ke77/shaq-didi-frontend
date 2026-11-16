@@ -29,10 +29,12 @@ export const FoodCard: React.FC<FoodCardProps> = ({ item, onClick, compact = fal
         />
 
         {/* Time remaining badge on image corner */}
-        <div className="absolute top-2.5 left-2.5 z-10 px-2 py-0.5 rounded-full bg-[#212121]/55 backdrop-blur-md text-[10px] sm:text-[11px] font-medium text-white flex items-center gap-1 border border-white/15 shadow-xs pointer-events-none">
-          <Clock className="w-2.5 h-2.5 text-white/90" />
-          <span>{item.prepTime}</span>
-        </div>
+        {item.prepTime && (
+          <div className="absolute top-2.5 left-2.5 z-10 px-2 py-0.5 rounded-full bg-[#212121]/55 backdrop-blur-md text-[10px] sm:text-[11px] font-medium text-white flex items-center gap-1 border border-white/15 shadow-xs pointer-events-none">
+            <Clock className="w-2.5 h-2.5 text-white/90" />
+            <span>{item.prepTime}</span>
+          </div>
+        )}
       </div>
 
       {/* Card Info */}
@@ -48,15 +50,17 @@ export const FoodCard: React.FC<FoodCardProps> = ({ item, onClick, compact = fal
             {item.name}
           </h3>
 
-          <div
-            className="flex items-center gap-1 shrink-0 text-[#212121] font-semibold tabular-nums"
-            title={`Rating: ${item.rating.toFixed(1)} out of 5`}
-          >
-            <Star className={`${compact ? 'w-3 h-3' : 'w-3.5 h-3.5 lg:w-4 lg:h-4'} text-[#FFC300] fill-[#FFC300] shrink-0`} />
-            <span className={compact ? 'text-[11px]' : 'text-xs lg:text-sm'}>
-              {item.rating.toFixed(1)}
-            </span>
-          </div>
+          {item.rating > 0 && (
+            <div
+              className="flex items-center gap-1 shrink-0 text-[#212121] font-semibold tabular-nums"
+              title={`Rating: ${item.rating.toFixed(1)} out of 5`}
+            >
+              <Star className={`${compact ? 'w-3 h-3' : 'w-3.5 h-3.5 lg:w-4 lg:h-4'} text-[#FFC300] fill-[#FFC300] shrink-0`} />
+              <span className={compact ? 'text-[11px]' : 'text-xs lg:text-sm'}>
+                {item.rating.toFixed(1)}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Location row (truncated with ellipsis if too long) */}

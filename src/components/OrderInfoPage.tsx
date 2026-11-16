@@ -2,54 +2,45 @@ import React, { useState, useEffect } from 'react';
 import { FoodJointItem, MenuItem } from '../data/foodJoints';
 import { ArrowLeft, ChevronDown, MapPin, Star, Clock, Check } from 'lucide-react';
 import { ConfirmOrderDrawer } from './ConfirmOrderDrawer';
-import { api, PersonnelMember, FALLBACK_PERSONNEL } from '../services/api';
+import { api, PersonnelMember, getErrorMessage } from '../services/api';
 
 export interface OrderInfoSubmitData {
   item: FoodJointItem;
-  selectedMenuItem?: MenuItem;
-  amount: string;
+  selectedMenuItem: MenuItem;
+  quantity: number;
   notes: string;
   personnel: string;
-  personnelId?: string;
+  personnelId: string;
 }
 
 interface OrderInfoPageProps {
   item: FoodJointItem;
   onBack: () => void;
-  onSubmitOrder: (data: OrderInfoSubmitData) => void;
+  onSubmitOrder: (data: OrderInfoSubmitData) => void | Promise<void>;
   isStandaloneScreen?: boolean;
-  defaultAmount?: string;
-  defaultNotes?: string;
-  defaultPersonnel?: string;
   autoOpenDrawer?: boolean;
 }
 
-export const AVAILABLE_PERSONNEL = FALLBACK_PERSONNEL;
-
-const AMOUNT_PRESETS = ['20', '35', '50', '75', '100'] as const;
 const NOTE_PRESETS = ['Extra pepper', 'No onions', 'Less oil', 'Call on arrival'] as const;
 
 export const OrderInfoPage: React.FC<OrderInfoPageProps> = ({
   item,
   onBack,
   onSubmitOrder,
-  defaultAmount = '',
-  defaultNotes = '',
-  defaultPersonnel = '',
   autoOpenDrawer = false,
 }) => {
   const [selectedMenuItem, setSelectedMenuItem] = useState<MenuItem | undefined>(
     item.menu[0]
   );
-  const [amount, setAmount] = useState(
-    defaultAmount || (item.menu[0] ? String(item.menu[0].priceGHS) : '')
-  );
-  const [notes, setNotes] = useState(defaultNotes);
+  const [quantity, setQuantity] = useState('1');
+  const [notes, setNotes] = useState('');
   const [selectedPersonnelId, setSelectedPersonnelId] = useState('');
-  const [selectedPersonnel, setSelectedPersonnel] = useState(defaultPersonnel);
+  const [selectedPersonnel, setSelectedPersonnel] = useState('');
   const [personnelList, setPersonnelList] = useState<PersonnelMember[]>([]);
   const [isLoadingPersonnel, setIsLoadingPersonnel] = useState(true);
-  const [errors, setErrors] = useState<{ amount?: string; personnel?: string }>({});
+  const [personnelError, setPersonnelError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<{ quantity?: string; personnel?: string }>({});
   const [isConfirmDrawerOpen, setIsConfirmDrawerOpen] = useState(autoOpenDrawer);
   const [isDrawerSubmitting, setIsDrawerSubmitting] = useState(false);
   const [isDrawerSuccess, setIsDrawerSuccess] = useState(false);
@@ -62,6 +53,11 @@ export const OrderInfoPage: React.FC<OrderInfoPageProps> = ({
       .then((list) => {
         if (!cancelled) {
           setPersonnelList(list);
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setPersonnelError(getErrorMessage(error, 'Could not load dispatch personnel.'));
         }
       })
       .finally(() => {
@@ -77,22 +73,16 @@ export const OrderInfoPage: React.FC<OrderInfoPageProps> = ({
 
   const handleSelectMenu = (menuItem: MenuItem) => {
     setSelectedMenuItem(menuItem);
-    setAmount(String(menuItem.priceGHS));
-    if (errors.amount) setErrors((prev) => ({ ...prev, amount: undefined }));
   };
 
   const validate = () => {
-    const errs: { amount?: string; personnel?: string } = {};
-    if (!amount.trim()) {
-      errs.amount = 'Please enter the amount you want to buy';
-    } else if (
-      isNaN(Number(amount.replace(/[^0-9.]/g, ''))) ||
-      Number(amount.replace(/[^0-9.]/g, '')) <= 0
-    ) {
-      errs.amount = 'Please enter a valid amount';
+    const errs: { quantity?: string; personnel?: string } = {};
+    const numericQuantity = Number(quantity);
+    if (!Number.isInteger(numericQuantity) || numericQuantity < 1 || numericQuantity > 500) {
+      errs.quantity = 'Quantity must be a whole number between 1 and 500';
     }
 
-    if (!selectedPersonnel) {
+    if (!selectedPersonnelId) {
       errs.personnel = 'Please select a personnel to handle your order';
     }
 
@@ -106,24 +96,29 @@ export const OrderInfoPage: React.FC<OrderInfoPageProps> = ({
     setIsConfirmDrawerOpen(true);
   };
 
-  const handleConfirmOrder = () => {
+  const handleConfirmOrder = async () => {
+    if (!selectedMenuItem || !selectedPersonnelId) return;
     setIsDrawerSubmitting(true);
-    setTimeout(() => {
-      setIsDrawerSubmitting(false);
+    setSubmitError(null);
+    try {
+      await onSubmitOrder({
+        item,
+        selectedMenuItem,
+        quantity: Number(quantity),
+        notes: notes.trim(),
+        personnel: selectedPersonnel,
+        personnelId: selectedPersonnelId,
+      });
       setIsDrawerSuccess(true);
       setTimeout(() => {
         setIsConfirmDrawerOpen(false);
         setIsDrawerSuccess(false);
-        onSubmitOrder({
-          item,
-          selectedMenuItem,
-          amount: amount.trim(),
-          notes: notes.trim(),
-          personnel: selectedPersonnel,
-          personnelId: selectedPersonnelId || undefined,
-        });
       }, 650);
-    }, 400);
+    } catch (error: unknown) {
+      setSubmitError(getErrorMessage(error, 'Could not place your order.'));
+    } finally {
+      setIsDrawerSubmitting(false);
+    }
   };
 
   return (
@@ -160,8 +155,12 @@ export const OrderInfoPage: React.FC<OrderInfoPageProps> = ({
                 {item.name}
               </h1>
               <div className="flex items-center gap-1 shrink-0 pt-1 text-xs font-bold text-[#212121] tabular-nums">
-                <Star className="w-3.5 h-3.5 text-[#FFC300] fill-[#FFC300]" />
-                <span>{item.rating.toFixed(1)}</span>
+                {item.rating > 0 && (
+                  <>
+                    <Star className="w-3.5 h-3.5 text-[#FFC300] fill-[#FFC300]" />
+                    <span>{item.rating.toFixed(1)}</span>
+                  </>
+                )}
               </div>
             </div>
             <div className="flex items-center justify-between gap-2 mt-1 text-xs text-[#757575]">
@@ -169,10 +168,12 @@ export const OrderInfoPage: React.FC<OrderInfoPageProps> = ({
                 <MapPin className="w-3.5 h-3.5 text-[#FF6347] shrink-0" />
                 <span className="truncate">{item.location}</span>
               </span>
-              <span className="flex items-center gap-1 shrink-0 text-[#757575]">
-                <Clock className="w-3 h-3" />
-                <span>{item.prepTime}</span>
-              </span>
+              {item.prepTime && (
+                <span className="flex items-center gap-1 shrink-0 text-[#757575]">
+                  <Clock className="w-3 h-3" />
+                  <span>{item.prepTime}</span>
+                </span>
+              )}
             </div>
             <p className="text-xs text-[#757575] leading-relaxed mt-2">
               {item.description}
@@ -222,55 +223,34 @@ export const OrderInfoPage: React.FC<OrderInfoPageProps> = ({
 
           {/* Order Form */}
           <form onSubmit={handleOrderNowClick} className="mt-5 space-y-4">
-            {/* Field 1: Amount + Quick Preset Tabs */}
+            {/* Field 1: Quantity */}
             <div>
               <label className="block text-xs sm:text-sm font-semibold text-[#E53935] mb-1.5">
-                Amount
+                Quantity
               </label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-[#757575] pointer-events-none">
-                  GH₵
-                </span>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="Enter the Amount you want to buy"
-                  value={amount}
-                  onChange={(e) => {
-                    setAmount(e.target.value);
-                    if (errors.amount) setErrors((prev) => ({ ...prev, amount: undefined }));
-                  }}
-                  className={`w-full pl-13 pr-4 py-3 rounded-xl border text-xs sm:text-sm text-[#212121] placeholder:text-[#B5B5B5] bg-white transition-colors focus:outline-none ${
-                    errors.amount
-                      ? 'border-[#E53935] focus:border-[#E53935] ring-1 ring-[#E53935]'
-                      : 'border-[#CDD5E1] focus:border-[#FF6347] focus:ring-1 focus:ring-[#FF6347]'
-                  }`}
-                />
-              </div>
-              <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                {AMOUNT_PRESETS.map((preset) => {
-                  const isActive = amount.trim() === preset;
-                  return (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() => {
-                        setAmount(preset);
-                        if (errors.amount) setErrors((prev) => ({ ...prev, amount: undefined }));
-                      }}
-                      className={`px-2.5 py-1 rounded-lg border text-[11px] font-semibold tabular-nums transition-all cursor-pointer ${
-                        isActive
-                          ? 'bg-[#FFEBE7] text-[#E53935] border-[#FF6E6A]/60'
-                          : 'bg-[#F4F7FA] text-[#757575] border-[#DEE6EE] hover:border-[#CDD5E1] hover:text-[#212121]'
-                      }`}
-                    >
-                      GH₵ {preset}
-                    </button>
-                  );
-                })}
-              </div>
-              {errors.amount && (
-                <p className="text-[11px] text-[#E53935] mt-1 font-medium">{errors.amount}</p>
+              <input
+                type="number"
+                min={1}
+                max={500}
+                step={1}
+                value={quantity}
+                onChange={(event) => {
+                  setQuantity(event.target.value);
+                  if (errors.quantity) setErrors((previous) => ({ ...previous, quantity: undefined }));
+                }}
+                className={`w-full px-4 py-3 rounded-xl border text-xs sm:text-sm text-[#212121] bg-white transition-colors focus:outline-none ${
+                  errors.quantity
+                    ? 'border-[#E53935] focus:border-[#E53935] ring-1 ring-[#E53935]'
+                    : 'border-[#CDD5E1] focus:border-[#FF6347] focus:ring-1 focus:ring-[#FF6347]'
+                }`}
+              />
+              {selectedMenuItem && (
+                <p className="text-[11px] text-[#757575] mt-1">
+                  Total: GH₵ {(selectedMenuItem.priceGHS * Number(quantity || 0)).toFixed(2)}
+                </p>
+              )}
+              {errors.quantity && (
+                <p className="text-[11px] text-[#E53935] mt-1 font-medium">{errors.quantity}</p>
               )}
             </div>
 
@@ -329,15 +309,12 @@ export const OrderInfoPage: React.FC<OrderInfoPageProps> = ({
               </p>
               <div className="relative">
                 <select
-                  value={selectedPersonnel}
+                  value={selectedPersonnelId}
                   disabled={isLoadingPersonnel}
                   onChange={(e) => {
-                    const value = e.target.value;
-                    setSelectedPersonnel(value);
-                    const matched = personnelList.find(
-                      (p) => `${p.name} (${p.role})` === value
-                    );
-                    setSelectedPersonnelId(matched ? matched.id : '');
+                    const person = personnelList.find((p) => p.id === e.target.value);
+                    setSelectedPersonnelId(person?.id ?? '');
+                    setSelectedPersonnel(person ? `${person.name} (${person.role})` : '');
                     if (errors.personnel) setErrors((prev) => ({ ...prev, personnel: undefined }));
                   }}
                   className={`w-full px-4 py-3 pr-10 rounded-xl border text-xs sm:text-sm text-[#212121] bg-white appearance-none transition-colors focus:outline-none cursor-pointer disabled:bg-[#F4F7FA] disabled:text-[#757575] ${
@@ -348,17 +325,23 @@ export const OrderInfoPage: React.FC<OrderInfoPageProps> = ({
                 >
                   <option value="">
                     {isLoadingPersonnel
-                      ? 'Loading available personnel...'
-                      : 'Select available personnel'}
+                      ? 'Loading dispatch personnel...'
+                      : 'Select dispatch personnel'}
                   </option>
                   {personnelList.map((p) => (
-                    <option key={p.id} value={`${p.name} (${p.role})`}>
-                      {p.name} - {p.role} ({p.status})
+                    <option key={p.id} value={p.id}>
+                      {p.name} - {p.role}
                     </option>
                   ))}
                 </select>
                 <ChevronDown className="w-5 h-5 text-[#757575] absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
+              {personnelError && (
+                <p role="alert" className="text-[11px] text-[#E53935] mt-1">{personnelError}</p>
+              )}
+              {!isLoadingPersonnel && !personnelError && personnelList.length === 0 && (
+                <p className="text-[11px] text-[#757575] mt-1">No dispatch personnel are registered yet.</p>
+              )}
               {errors.personnel && (
                 <p className="text-[11px] text-[#E53935] mt-1 font-medium">{errors.personnel}</p>
               )}
@@ -384,11 +367,14 @@ export const OrderInfoPage: React.FC<OrderInfoPageProps> = ({
           jointName={item.name}
           jointAddress={item.location}
           menuItemName={selectedMenuItem?.name}
-          amount={amount}
+          amount={selectedMenuItem
+            ? (selectedMenuItem.priceGHS * Number(quantity || 0)).toFixed(2)
+            : '0.00'}
           notes={notes}
           personnel={selectedPersonnel}
           isSubmitting={isDrawerSubmitting}
           isSuccess={isDrawerSuccess}
+          error={submitError}
         />
       </div>
     </div>

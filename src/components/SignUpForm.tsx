@@ -3,7 +3,7 @@ import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { PersonnelRole, SignUpFormData, FormErrors, ROLE_DEFINITIONS } from '../types';
 
 interface SignUpFormProps {
-  onSuccess: (data: SignUpFormData) => void;
+  onSuccess: (data: SignUpFormData) => void | Promise<void>;
   onSignInClick: () => void;
   isMobileLayout?: boolean;
 }
@@ -42,8 +42,8 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
 
     if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+    } else if (formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
     }
 
     if (!formData.phoneNumber.trim()) {
@@ -56,14 +56,15 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
       setIsSubmitting(true);
-      setTimeout(() => {
+      try {
+        await onSuccess(formData);
+      } finally {
         setIsSubmitting(false);
-        onSuccess(formData);
-      }, 450);
+      }
     }
   };
 

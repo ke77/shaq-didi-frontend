@@ -4,7 +4,7 @@ import { EmptyClipboardGraphic } from './EmptyClipboardGraphic';
 import { FoodJointItem } from '../data/foodJoints';
 import { OrderRecord } from './OrderHistoryView';
 import { UserProfile } from '../types';
-import { Home, History, LogOut, Bell, MapPin, CheckCircle2, Clock } from 'lucide-react';
+import { Home, History, LogOut, Bell, MapPin, CheckCircle2, Clock, XCircle } from 'lucide-react';
 
 interface PermanentStaffOrderHistoryProps {
   currentUser: UserProfile;
@@ -42,7 +42,7 @@ export const PermanentStaffOrderHistory: React.FC<PermanentStaffOrderHistoryProp
 
   // Pending = current active orders; Completed = previous orders
   const currentOrders = orders.filter((o) => o.status === 'Pending');
-  const previousOrders = orders.filter((o) => o.status === 'Completed');
+  const previousOrders = orders.filter((o) => o.status !== 'Pending');
 
   const displayedOrders = activeTab === 'current' ? currentOrders : previousOrders;
 
@@ -225,14 +225,14 @@ export const PermanentStaffOrderHistory: React.FC<PermanentStaffOrderHistoryProp
                           className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                             order.status === 'Completed'
                               ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              : 'bg-[#FFA500]/15 text-[#DB8F05] border border-[#FFA500]/30'
+                              : order.status === 'Cancelled'
+                                ? 'bg-red-50 text-red-700 border border-red-200'
+                                : 'bg-[#FFA500]/15 text-[#DB8F05] border border-[#FFA500]/30'
                           }`}
                         >
-                          {order.status === 'Completed' ? (
-                            <CheckCircle2 className="w-3 h-3" />
-                          ) : (
-                            <Clock className="w-3 h-3" />
-                          )}
+                          {order.status === 'Completed' ? <CheckCircle2 className="w-3 h-3" /> :
+                            order.status === 'Cancelled' ? <XCircle className="w-3 h-3" /> :
+                              <Clock className="w-3 h-3" />}
                           {order.status}
                         </span>
                       </div>

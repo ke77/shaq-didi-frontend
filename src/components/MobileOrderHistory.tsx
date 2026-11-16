@@ -4,7 +4,7 @@ import { EmptyClipboardGraphic } from './EmptyClipboardGraphic';
 import { FoodJointItem } from '../data/foodJoints';
 import { OrderRecord } from './OrderHistoryView';
 import { UserProfile } from '../types';
-import { Bell, MapPin, CheckCircle2, Clock } from 'lucide-react';
+import { Bell, MapPin, CheckCircle2, Clock, XCircle } from 'lucide-react';
 
 interface MobileOrderHistoryProps {
   currentUser: UserProfile;
@@ -39,7 +39,7 @@ export const MobileOrderHistory: React.FC<MobileOrderHistoryProps> = ({
   const initials = getInitials(currentUser.fullName);
 
   const currentOrders = orders.filter((o) => o.status === 'Pending');
-  const previousOrders = orders.filter((o) => o.status === 'Completed');
+  const previousOrders = orders.filter((o) => o.status !== 'Pending');
   const displayedOrders = activeSubTab === 'current' ? currentOrders : previousOrders;
 
   return (
@@ -169,14 +169,14 @@ export const MobileOrderHistory: React.FC<MobileOrderHistoryProps> = ({
                         className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${
                           order.status === 'Completed'
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : 'bg-[#FFA500]/15 text-[#DB8F05] border border-[#FFA500]/30'
+                            : order.status === 'Cancelled'
+                              ? 'bg-red-50 text-red-700 border border-red-200'
+                              : 'bg-[#FFA500]/15 text-[#DB8F05] border border-[#FFA500]/30'
                         }`}
                       >
-                        {order.status === 'Completed' ? (
-                          <CheckCircle2 className="w-2.5 h-2.5" />
-                        ) : (
-                          <Clock className="w-2.5 h-2.5" />
-                        )}
+                        {order.status === 'Completed' ? <CheckCircle2 className="w-2.5 h-2.5" /> :
+                          order.status === 'Cancelled' ? <XCircle className="w-2.5 h-2.5" /> :
+                            <Clock className="w-2.5 h-2.5" />}
                         {order.status}
                       </span>
                     </div>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { BrandLogo } from './BrandLogo';
 import { FoodCard } from './FoodCard';
-import { FOOD_ITEMS, FoodJointItem } from '../data/foodJoints';
+import { FoodJointItem } from '../data/foodJoints';
 import { PWAInstallButton } from './PWAInstallButton';
 import { UserProfile } from '../types';
 import { Home, History, LogOut, Search, Bell, CheckCircle2, Utensils, Flame, TrendingUp } from 'lucide-react';
@@ -10,15 +10,15 @@ interface DesktopHomeProps {
   currentUser: UserProfile;
   onLogout: () => void;
   onSelectFood: (item: FoodJointItem) => void;
+  foodItems: FoodJointItem[];
   orderCount: number;
   activeNavTab: 'home' | 'history' | 'notifications';
   onNavTabChange: (tab: 'home' | 'history' | 'notifications') => void;
   onOpenNotifications?: () => void;
   unreadNotificationCount?: number;
-  onToggleRole?: () => void;
 }
 
-const CATEGORIES = ['All', 'Popular', 'Most Ordered', 'Local Dishes', 'Rice & Bowls', 'Grills'] as const;
+const CATEGORIES = ['All'] as const;
 
 const getInitials = (name: string) =>
   name
@@ -32,21 +32,21 @@ export const DesktopHome: React.FC<DesktopHomeProps> = ({
   currentUser,
   onLogout,
   onSelectFood,
+  foodItems,
   orderCount,
   activeNavTab,
   onNavTabChange,
   onOpenNotifications,
   unreadNotificationCount = 0,
-  onToggleRole,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [showNotifications, setShowNotifications] = useState(false);
 
-  const firstName = currentUser.fullName.split(' ')[0] || 'Isaiah';
+  const firstName = currentUser.fullName.split(' ')[0] || ' ';
   const initials = getInitials(currentUser.fullName);
 
-  const filteredItems = FOOD_ITEMS.filter((item) => {
+  const filteredItems = foodItems.filter((item) => {
     const q = searchQuery.toLowerCase().trim();
     const matchesSearch =
       !q ||
@@ -65,11 +65,14 @@ export const DesktopHome: React.FC<DesktopHomeProps> = ({
     return matchesSearch && matchesCategory;
   });
 
-  const showCategorizedDashboard = selectedCategory === 'All' && !searchQuery.trim();
-  const popularJoints = FOOD_ITEMS.filter((item) => item.isPopular);
-  const mostOrderedJoints = [...FOOD_ITEMS]
+  const popularJoints = foodItems.filter((item) => item.isPopular);
+  const mostOrderedJoints = [...foodItems]
     .filter((item) => item.isMostOrdered)
     .sort((a, b) => b.orderCount - a.orderCount);
+  const showCategorizedDashboard =
+    selectedCategory === 'All' &&
+    !searchQuery.trim() &&
+    (popularJoints.length > 0 || mostOrderedJoints.length > 0);
 
   return (
     <div className="w-full bg-white flex h-full lg:h-screen overflow-hidden text-[#212121] select-none pl-64">
@@ -144,19 +147,6 @@ export const DesktopHome: React.FC<DesktopHomeProps> = ({
             </button>
           </nav>
 
-          {/* In-App Role Switcher */}
-          {onToggleRole && (
-            <div className="mt-8 pt-4 border-t border-[#DEE6EE]">
-              <button
-                type="button"
-                onClick={onToggleRole}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-[#757575] hover:text-[#E53935] hover:bg-[#FFEBE7]/50 border border-dashed border-[#CDD5E1] transition-all cursor-pointer"
-              >
-                <span>NSP Dispatch View</span>
-                <span className="text-[10px] text-[#B5B5B5] font-normal">Switch →</span>
-              </button>
-            </div>
-          )}
         </div>
 
         {/* PWA Install prompt in Sidebar */}
@@ -350,7 +340,9 @@ export const DesktopHome: React.FC<DesktopHomeProps> = ({
               <div className="w-12 h-12 rounded-full bg-[#F4F7FA] flex items-center justify-center mx-auto mb-3 text-[#B5B5B5]">
                 <Utensils className="w-6 h-6 stroke-[1.5]" />
               </div>
-              <p className="text-sm font-semibold text-[#212121]">No food joints match your filter.</p>
+              <p className="text-sm font-semibold text-[#212121]">
+                {foodItems.length === 0 ? 'No food joints are available yet.' : 'No food joints match your filter.'}
+              </p>
               <p className="text-xs text-[#757575] mt-1">Try searching for Daavi, Jollof, or reset your filters.</p>
               <button
                 onClick={() => {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, LogOut, ArrowLeftRight } from 'lucide-react';
+import { ArrowLeft, LogOut } from 'lucide-react';
 import { UserProfile } from '../types';
 
 interface ProfileViewProps {
@@ -10,7 +10,6 @@ interface ProfileViewProps {
   activeNavTab?: 'home' | 'history' | 'profile';
   onNavTabChange?: (tab: 'home' | 'history' | 'profile') => void;
   orderCount?: number;
-  onToggleRole?: () => void;
 }
 
 const getInitials = (name: string) =>
@@ -25,7 +24,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   currentUser,
   onBack,
   onLogout,
-  onToggleRole,
 }) => {
   const initials = getInitials(currentUser.fullName);
 
@@ -78,19 +76,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             <span>Logout</span>
           </button>
 
-          {onToggleRole && (
-            <button
-              type="button"
-              onClick={onToggleRole}
-              className="mt-6 flex items-center justify-between p-3.5 rounded-xl border border-dashed border-[#CDD5E1] bg-[#F4F7FA] hover:bg-[#FFEBE7]/50 hover:border-[#FF6347]/50 text-[#212121] hover:text-[#E53935] font-semibold text-xs transition-all cursor-pointer w-full text-left"
-            >
-              <div className="flex items-center gap-2.5">
-                <ArrowLeftRight className="w-4 h-4 text-[#FF6347]" />
-                <span>NSP Dispatch Portal View</span>
-              </div>
-              <span className="text-[10px] text-[#B5B5B5]">Switch →</span>
-            </button>
-          )}
         </div>
       </div>
     </div>

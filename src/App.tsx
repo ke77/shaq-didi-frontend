@@ -1,6 +1,4 @@
-'use client';
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HeroSection } from './components/HeroSection';
 import { SignUpForm } from './components/SignUpForm';
 import { SignInForm } from './components/SignInForm';
@@ -18,89 +16,39 @@ import { NspOrderHistory } from './components/NspOrderHistory';
 import { NotificationView, DesktopNotificationView } from './components/NotificationView';
 import { INITIAL_NOTIFICATIONS, AppNotification } from './data/notifications';
 import { FOOD_ITEMS, FoodJointItem } from './data/foodJoints';
-import { SignUpFormData, UserProfile, PersonnelRole } from './types';
-import { api } from './services/api';
-import { CheckCircle2, X } from 'lucide-react';
+import { SignUpFormData, UserProfile } from './types';
+import { CheckCircle2, Loader2, X } from 'lucide-react'
+import { api, ApiError, getErrorMessage } from './services/api'
 
-const DEFAULT_USER: UserProfile = {
-  id: 'usr-1',
-  fullName: 'Isaiah Amoh Mensah',
-  email: 'isaiaham@gmail.com',
-  phoneNumber: '0547016492',
+type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated'
+
+const EMPTY_USER: UserProfile = {
+  id: '',
+  fullName: '',
+  email: '',
+  phoneNumber: '',
   role: 'PS',
   station: 'Haatso Station',
-};
-
-const INITIAL_ORDERS: OrderRecord[] = [
-  {
-    id: 'ord-1041',
-    item: FOOD_ITEMS[0],
-    menuItemName: "Daavi's Special Gob3",
-    quantity: 1,
-    amount: '35.00',
-    personnel: 'Ama Serwaa (NSP - Station Runner)',
-    staffName: 'Isaiah Amoh Mensah',
-    staffPhone: '0547016492',
-    notes: 'Block B Room 14, extra pepper please',
-    date: 'Today, 12:45 PM',
-    status: 'Pending',
-  },
-  {
-    id: 'ord-1039',
-    item: FOOD_ITEMS[1],
-    menuItemName: "Mama Gee's Smoky Jollof & Chicken",
-    quantity: 1,
-    amount: '55.00',
-    personnel: 'Kofi Mensah (NSP - Zone A Dispatch)',
-    staffName: 'Isaiah Amoh Mensah',
-    staffPhone: '0547016492',
-    notes: 'Call on arrival',
-    date: 'Yesterday, 1:15 PM',
-    status: 'Completed',
-  },
-];
-
-const ACCOUNTS_STORAGE_KEY = 'shaq_didi_accounts';
-
-const loadRegisteredAccounts = (): Record<string, UserProfile> => {
-  if (typeof window === 'undefined') return {};
-  try {
-    const raw = localStorage.getItem(ACCOUNTS_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-};
-
-const saveRegisteredAccount = (profile: UserProfile) => {
-  if (typeof window === 'undefined') return;
-  try {
-    const existing = loadRegisteredAccounts();
-    existing[profile.email.toLowerCase()] = profile;
-    localStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(existing));
-  } catch {
-    // Ignore storage quota errors
-  }
-};
-
-const deriveNameFromEmail = (email: string) => {
-  const local = email.split('@')[0] || 'Staff Member';
-  return local
-    .replace(/[._-]+/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
 };
 
 export type UserRole = 'permanent_staff' | 'nsp';
 
 export default function App() {
   // Authentication & Active User Profile
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
-  const [authView, setAuthView] = useState<'signin' | 'signup'>('signin');
-  const [signUpData, setSignUpData] = useState<SignUpFormData | null>(null);
-  const [currentUser, setCurrentUser] = useState<UserProfile>(DEFAULT_USER);
+  // 'loading' while a stored token is being verified with the server
+const [authStatus, setAuthStatus] = useState<AuthStatus>(() =>
+  api.getToken() ? 'loading' : 'unauthenticated'
+)
+const [authView, setAuthView] = useState<'signin' | 'signup'>('signin')
+const [signUpData, setSignUpData] = useState<SignUpFormData | null>(null)
+const [authError, setAuthError] = useState<string | null>(null)
+const [currentUser, setCurrentUser] = useState<UserProfile>(EMPTY_USER)
+const [foodItems, setFoodItems] = useState<FoodJointItem[]>([])
+const [dashboardError, setDashboardError] = useState<string | null>(null)
+const [isLoadingDashboard, setIsLoadingDashboard] = useState(false)
 
-  // Active Role: Permanent Staff or NSP Dispatcher
-  const [userRole, setUserRole] = useState<UserRole>('permanent_staff');
+// the role always comes from the server's user, it is never switched on the client
+const userRole: UserRole = currentUser.role === 'NSP' ? 'nsp' : 'permanent_staff'
 
   // Desktop Navigation: 'home' | 'history' | 'notifications'
   const [desktopNavTab, setDesktopNavTab] = useState<'home' | 'history' | 'notifications'>('home');
@@ -112,12 +60,110 @@ export default function App() {
   // Food Ordering State
   const [selectedFoodItem, setSelectedFoodItem] = useState<FoodJointItem>(FOOD_ITEMS[0]);
   const [desktopModalOpen, setDesktopModalOpen] = useState(false);
-  const [orders, setOrders] = useState<OrderRecord[]>(INITIAL_ORDERS);
+  const [orders, setOrders] = useState<OrderRecord[]>([]);
+  const [todayAssignedOrders, setTodayAssignedOrders] = useState<OrderRecord[]>([]);
   const [orderToast, setOrderToast] = useState<string | null>(null);
 
   // Notifications State
   const [notifications, setNotifications] = useState<AppNotification[]>(INITIAL_NOTIFICATIONS);
   const unreadNotificationCount = notifications.filter((n) => !n.read).length;
+
+  // Verify existing token with Laravel backend on initial mount
+  useEffect(() => {
+  api.setUnauthorizedHandler(() => {
+    setCurrentUser(EMPTY_USER)
+    setAuthStatus('unauthenticated')
+  })
+  return () => api.setUnauthorizedHandler(null)
+}, [])
+
+
+useEffect(() => {
+  if (!api.getToken()) return
+
+  let cancelled = false
+
+  api
+    .getCurrentUser()
+    .then((profile) => {
+      if (cancelled) return
+      setCurrentUser(profile)
+      setAuthStatus('authenticated')
+    })
+    .catch((err: unknown) => {
+      if (cancelled) return
+      // a 401 is already handled above, anything else (offline, 500) keeps the token for a retry
+      if (err instanceof ApiError && err.status !== 401) setAuthError(err.message)
+      setAuthStatus('unauthenticated')
+    })
+
+  return () => {
+    cancelled = true
+  }
+}, [])
+
+useEffect(() => {
+  if (authStatus !== 'authenticated') return
+
+  let cancelled = false
+  setIsLoadingDashboard(true)
+  setDashboardError(null)
+
+  Promise.all([
+    currentUser.role === 'PS' ? api.getFoodJoints() : Promise.resolve([]),
+    api.getOrders(),
+    currentUser.role === 'NSP' ? api.getTodayOrders() : Promise.resolve([]),
+  ])
+    .then(([catalog, orderHistory, todaysOrders]) => {
+      if (cancelled) return
+      setFoodItems(catalog)
+      setOrders(orderHistory)
+      setTodayAssignedOrders(todaysOrders)
+    })
+    .catch((err: unknown) => {
+      if (!cancelled) {
+        setDashboardError(getErrorMessage(err, 'Could not load your dashboard data.'))
+      }
+    })
+    .finally(() => {
+      if (!cancelled) setIsLoadingDashboard(false)
+    })
+
+  return () => {
+    cancelled = true
+  }
+}, [authStatus, currentUser.role])
+
+const refreshOrderHistory = async () => {
+  const [orderHistory, todaysOrders] = await Promise.all([
+    api.getOrders(),
+    currentUser.role === 'NSP' ? api.getTodayOrders() : Promise.resolve([]),
+  ])
+  setOrders(orderHistory)
+  setTodayAssignedOrders(todaysOrders)
+}
+
+const handleSignIn = async (data: { email: string; password: string }) => {
+  setAuthError(null)
+  try {
+    applyAuthenticatedUser(await api.login({ email: data.email, password: data.password }))
+  } catch (err: unknown) {
+    setAuthError(getErrorMessage(err, 'Sign in failed. Please try again.'))
+  }
+}
+
+
+const handleSignUp = async (data: SignUpFormData) => {
+  setAuthError(null)
+  try {
+    const profile = await api.register(data)
+    setSignUpData(data)
+    applyAuthenticatedUser(profile)
+  } catch (err: unknown) {
+    setAuthError(getErrorMessage(err, 'Registration failed. Please check your details.'))
+  }
+}
+
 
   const showToast = (msg: string, duration = 4000) => {
     setOrderToast(msg);
@@ -160,33 +206,13 @@ export default function App() {
 
   // Place Order handler (creates Pending order with staff details)
   const handlePlaceOrderInfo = async (data: OrderInfoSubmitData) => {
-    const newRecord: OrderRecord = {
-      id: `ord-${1042 + orders.length}`,
-      item: data.item,
-      menuItemName: data.selectedMenuItem?.name,
-      quantity: 1,
-      amount: data.amount,
-      notes: data.notes,
-      personnel: data.personnel,
-      staffName: currentUser.fullName,
-      staffPhone: currentUser.phoneNumber,
-      date: 'Just now',
-      status: 'Pending',
-    };
-
-    try {
-      await api.createOrder({
-        food_item_id: data.item.id,
-        amount: data.amount,
-        notes: data.notes,
-        personnel_id: data.personnelId,
-        personnel_name: data.personnel,
-      });
-    } catch {
-      // Graceful offline fallback
-    }
-
-    setOrders((prev) => [newRecord, ...prev]);
+    const newRecord = await api.createOrder({
+      product_id: Number(data.selectedMenuItem.id),
+      amount: data.quantity,
+      order_note: data.notes,
+      personnel_id: Number(data.personnelId),
+    })
+    setOrders((prev) => [newRecord, ...prev])
 
     const orderNotif: AppNotification = {
       id: `notif-${Date.now()}`,
@@ -199,10 +225,7 @@ export default function App() {
     };
     setNotifications((prev) => [orderNotif, ...prev]);
 
-    showToast(
-      `Order confirmed at ${data.item.name} (GH₵ ${data.amount}) · Assigned to ${data.personnel.split(' (')[0]}`,
-      5000
-    );
+    showToast(`Order placed for ${data.item.name}.`, 5000)
 
     setDesktopModalOpen(false);
     setMobileOverlayScreen('none');
@@ -212,19 +235,14 @@ export default function App() {
   const handleUpdateOrderStatus = async (
     orderId: string,
     status: 'Pending' | 'Completed'
-  ) => {
+  ): Promise<boolean> => {
     try {
-      await api.updateOrderStatus(orderId, status);
-    } catch {
-      // Offline fallback
-    }
+      if (status !== 'Completed') return false
+      const updatedOrder = await api.completeOrder(orderId)
+      setOrders((prev) => prev.map((order) => order.id === orderId ? updatedOrder : order))
+      setTodayAssignedOrders((prev) => prev.filter((order) => order.id !== orderId))
 
-    const targetOrder = orders.find((o) => o.id === orderId);
-    setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, status } : o))
-    );
-
-    if (status === 'Completed') {
+      const targetOrder = orders.find((o) => o.id === orderId)
       const statusNotif: AppNotification = {
         id: `notif-${Date.now()}`,
         type: 'order_completed',
@@ -235,31 +253,41 @@ export default function App() {
         orderId,
       };
       setNotifications((prev) => [statusNotif, ...prev]);
+      showToast(`Order ${orderId} marked as completed.`)
+      return true
+    } catch (err: unknown) {
+      showToast(getErrorMessage(err, 'Could not update this order.'), 5000)
+      return false
     }
-
-    showToast(`Order ${orderId} marked as ${status}.`);
   };
 
-  // Cancel Pending Order for Permanent Staff (PS Story 8)
-  const handleCancelOrder = (orderId: string) => {
-    const target = orders.find((o) => o.id === orderId);
-    if (target && target.status !== 'Pending') return;
-    setOrders((prev) => prev.filter((o) => o.id !== orderId));
-    showToast('Pending order cancelled.', 3000);
+  // Cancel Pending Order for Permanent Staff
+  const handleCancelOrder = async (orderId: string) => {
+    try {
+      const cancelledOrder = await api.cancelOrder(orderId)
+      setOrders((prev) => prev.map((order) => order.id === orderId ? cancelledOrder : order))
+      showToast('Pending order cancelled.', 3000)
+    } catch (err: unknown) {
+      showToast(getErrorMessage(err, 'Could not cancel this order.'), 5000)
+    }
   };
 
   const handleLogout = async () => {
-    try {
-      await api.logout();
-    } catch {
-      // Ignore
-    }
-    setIsAuthenticated(false);
-    setAuthView('signin');
-    setDesktopNavTab('home');
-    setMobileNavTab('home');
-    setMobileOverlayScreen('none');
-  };
+  let logoutError: string | null = null
+  try {
+    await api.logout()
+  } catch (err: unknown) {
+    logoutError = getErrorMessage(err, 'Your session could not be revoked on the server.')
+  } finally {
+    setCurrentUser(EMPTY_USER)
+    setAuthStatus('unauthenticated')
+    setAuthView('signin')
+    setDesktopNavTab('home')
+    setMobileNavTab('home')
+    setMobileOverlayScreen('none')
+  }
+  if (logoutError) setAuthError(logoutError)
+}
 
   const handleReorder = (item: FoodJointItem) => {
     setSelectedFoodItem(item);
@@ -267,86 +295,69 @@ export default function App() {
     setMobileOverlayScreen('order-info');
   };
 
-  // Switch between Permanent Staff and NSP role view
-  const toggleRole = () => {
-    setUserRole((prev) => {
-      const next = prev === 'permanent_staff' ? 'nsp' : 'permanent_staff';
-      setCurrentUser((u) => ({ ...u, role: next === 'nsp' ? 'NSP' : 'PS' }));
-      return next;
-    });
-  };
+const applyAuthenticatedUser = (profile: UserProfile) => {
+  setCurrentUser(profile)
+  setDesktopNavTab('home')
+  setMobileNavTab('home')
+  setMobileOverlayScreen('none')
+  setAuthStatus('authenticated')
+}
 
-  const applyAuthenticatedUser = (profile: UserProfile) => {
-    setCurrentUser(profile);
-    setUserRole(profile.role === 'NSP' ? 'nsp' : 'permanent_staff');
-    setDesktopNavTab('home');
-    setMobileNavTab('home');
-    setMobileOverlayScreen('none');
-    setIsAuthenticated(true);
-  };
+
+if (authStatus === 'loading') {
+  return (
+    <div className="min-h-screen bg-[#F4F7FA] flex items-center justify-center">
+      <Loader2 className="w-8 h-8 text-[#FF6347] animate-spin" aria-label="Loading" />
+    </div>
+  )
+}
 
   // =========================================================================
   // VIEW: AUTHENTICATION (Sign In / Sign Up)
   // =========================================================================
-  if (!isAuthenticated) {
+  if (authStatus === 'unauthenticated') {
     return (
       <div className="min-h-screen bg-[#F4F7FA] flex items-center justify-center p-4">
         <div className="w-full max-w-5xl bg-white rounded-2xl shadow-xl overflow-hidden border border-[#DEE6EE]">
           <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[580px]">
             <div className="h-full">
               <HeroSection
-                onSignInClick={() => setAuthView('signin')}
+                onSignInClick={() => {
+                  setAuthError(null);
+                  setAuthView('signin');
+                }}
                 showSignInButton={authView === 'signup'}
               />
             </div>
 
-            <div className="flex items-center justify-center p-6 bg-white">
+            <div className="flex flex-col items-center justify-center p-6 bg-white">
+              {authError && (
+                <div className="w-full max-w-md mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs flex items-center justify-between">
+                  <span>{authError}</span>
+                  <button
+                    onClick={() => setAuthError(null)}
+                    className="text-red-500 hover:text-red-700 ml-2 cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
               {authView === 'signin' ? (
                 <SignInForm
-                  onSuccess={async (data) => {
-                    try {
-                      await api.login({ email: data.email, password: data.password });
-                    } catch {
-                      // Fallback
-                    }
-                    const registered = loadRegisteredAccounts()[data.email.toLowerCase()];
-                    const role: PersonnelRole = registered?.role || data.role || 'PS';
-                    const profile: UserProfile = registered || {
-                      id: `usr-${Date.now()}`,
-                      fullName:
-                        data.email.toLowerCase() === DEFAULT_USER.email
-                          ? DEFAULT_USER.fullName
-                          : deriveNameFromEmail(data.email),
-                      email: data.email,
-                      phoneNumber: DEFAULT_USER.phoneNumber,
-                      role,
-                      station: 'Haatso Station',
-                    };
-                    applyAuthenticatedUser(profile);
+                  onSuccess={handleSignIn}
+                  onSignUpClick={() => {
+                    setAuthError(null);
+                    setAuthView('signup');
                   }}
-                  onSignUpClick={() => setAuthView('signup')}
                 />
               ) : (
                 <SignUpForm
-                  onSuccess={async (data) => {
-                    setSignUpData(data);
-                    try {
-                      await api.register(data);
-                    } catch {
-                      // Fallback
-                    }
-                    const newProfile: UserProfile = {
-                      id: `usr-${Date.now()}`,
-                      fullName: data.fullName.trim(),
-                      email: data.email.trim(),
-                      phoneNumber: data.phoneNumber.trim(),
-                      role: data.role,
-                      station: 'Haatso Station',
-                    };
-                    saveRegisteredAccount(newProfile);
-                    applyAuthenticatedUser(newProfile);
+                  onSuccess={handleSignUp}
+                  onSignInClick={() => {
+                    setAuthError(null);
+                    setAuthView('signin');
                   }}
-                  onSignInClick={() => setAuthView('signin')}
                 />
               )}
             </div>
@@ -367,6 +378,22 @@ export default function App() {
   // =========================================================================
   return (
     <div className="min-h-screen lg:h-screen lg:overflow-hidden bg-[#F4F7FA] text-[#212121] font-sans flex flex-col">
+      {dashboardError && (
+        <div role="alert" className="fixed top-4 left-1/2 -translate-x-1/2 z-50 max-w-lg w-[calc(100%-2rem)] rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-lg">
+          <div className="flex items-center justify-between gap-4">
+            <span>{dashboardError}</span>
+            <button type="button" onClick={() => setDashboardError(null)} aria-label="Dismiss error">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+      {isLoadingDashboard && (
+        <div className="fixed top-4 right-4 z-40 flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs text-[#757575] shadow">
+          <Loader2 className="h-4 w-4 animate-spin text-[#FF6347]" />
+          Loading your account…
+        </div>
+      )}
       {/* Toast Notification */}
       {orderToast && (
         <div className="fixed bottom-20 lg:bottom-6 right-4 lg:right-6 z-50 flex items-center gap-2.5 bg-[#212121] text-white text-xs px-4 py-3 rounded-xl shadow-2xl border border-[#FF6347]/40 animate-in fade-in slide-in-from-bottom-3 duration-200 max-w-sm">
@@ -390,9 +417,15 @@ export default function App() {
             <NspOrderHistory
               currentUser={currentUser}
               orders={orders}
+              todayOrders={todayAssignedOrders}
               onUpdateStatus={handleUpdateOrderStatus}
-              onRefresh={() => showToast('Synced assigned orders with dispatch server.', 3000)}
-              onToggleRole={toggleRole}
+              onRefresh={async () => {
+                try {
+                  await refreshOrderHistory()
+                } catch (err: unknown) {
+                  showToast(getErrorMessage(err, 'Could not refresh assigned orders.'), 5000)
+                }
+              }}
               onLogout={handleLogout}
             />
           </div>
@@ -403,12 +436,12 @@ export default function App() {
                 currentUser={currentUser}
                 onLogout={handleLogout}
                 onSelectFood={handleDesktopSelectFood}
+                foodItems={foodItems}
                 orderCount={orders.length}
                 activeNavTab={desktopNavTab}
                 onNavTabChange={setDesktopNavTab}
                 onOpenNotifications={() => setDesktopNavTab('notifications')}
                 unreadNotificationCount={unreadNotificationCount}
-                onToggleRole={toggleRole}
               />
             )}
 
@@ -472,9 +505,15 @@ export default function App() {
             <NspOrderHistory
               currentUser={currentUser}
               orders={orders}
+              todayOrders={todayAssignedOrders}
               onUpdateStatus={handleUpdateOrderStatus}
-              onRefresh={() => showToast('Synced assigned orders.', 3000)}
-              onToggleRole={toggleRole}
+              onRefresh={async () => {
+                try {
+                  await refreshOrderHistory()
+                } catch (err: unknown) {
+                  showToast(getErrorMessage(err, 'Could not refresh assigned orders.'), 5000)
+                }
+              }}
               onLogout={handleLogout}
             />
           </div>
@@ -484,13 +523,13 @@ export default function App() {
               <MobileHome
                 currentUser={currentUser}
                 onSelectFood={handleMobileSelectFood}
+                foodItems={foodItems}
                 orderCount={orders.length}
                 activeTab={mobileNavTab}
                 onTabChange={setMobileNavTab}
                 onLogout={handleLogout}
                 onOpenNotifications={() => setMobileOverlayScreen('notifications')}
                 unreadNotificationCount={unreadNotificationCount}
-                onToggleRole={toggleRole}
               />
             )}
 
@@ -515,7 +554,6 @@ export default function App() {
                 activeNavTab={mobileNavTab}
                 onNavTabChange={setMobileNavTab}
                 orderCount={orders.length}
-                onToggleRole={toggleRole}
               />
             )}
 

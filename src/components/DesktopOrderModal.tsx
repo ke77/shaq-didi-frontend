@@ -1,17 +1,17 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { FoodJointItem } from '../data/foodJoints';
+import { FoodJointItem, MenuItem } from '../data/foodJoints';
 import { ChevronDown, Check, UserCheck, MapPin } from 'lucide-react';
-import { AVAILABLE_PERSONNEL, OrderInfoSubmitData } from './OrderInfoPage';
+import { OrderInfoSubmitData } from './OrderInfoPage';
+import { api, getErrorMessage, PersonnelMember } from '../services/api';
 
 interface DesktopOrderModalProps {
   isOpen: boolean;
   item: FoodJointItem | null;
   onClose: () => void;
-  onSubmitOrder: (data: OrderInfoSubmitData) => void;
+  onSubmitOrder: (data: OrderInfoSubmitData) => void | Promise<void>;
 }
 
-const AMOUNT_PRESETS = ['25', '35', '50', '75'];
 const NOTE_SUGGESTIONS = [
   'Extra shito please',
   'Pack salad separately',
@@ -24,26 +24,60 @@ export const DesktopOrderModal: React.FC<DesktopOrderModalProps> = ({
   onClose,
   onSubmitOrder,
 }) => {
-  const [amount, setAmount] = useState('');
+  const [quantity, setQuantity] = useState('1');
+  const [selectedMenuItem, setSelectedMenuItem] = useState<MenuItem | undefined>();
   const [notes, setNotes] = useState('');
   const [selectedPersonnelId, setSelectedPersonnelId] = useState('');
   const [selectedPersonnel, setSelectedPersonnel] = useState('');
-  const [errors, setErrors] = useState<{ amount?: string; personnel?: string }>({});
+  const [personnelList, setPersonnelList] = useState<PersonnelMember[]>([]);
+  const [personnelError, setPersonnelError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isLoadingPersonnel, setIsLoadingPersonnel] = useState(false);
+  const [errors, setErrors] = useState<{ quantity?: string; personnel?: string; menu?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen || !item) return;
+    let cancelled = false;
+    setSelectedMenuItem(item.menu[0]);
+    setQuantity('1');
+    setNotes('');
+    setSelectedPersonnelId('');
+    setSelectedPersonnel('');
+    setSubmitError(null);
+    setIsSuccess(false);
+    setIsLoadingPersonnel(true);
+    setPersonnelError(null);
+    api.getPersonnel()
+      .then((people) => {
+        if (!cancelled) setPersonnelList(people);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) setPersonnelError(getErrorMessage(error, 'Could not load dispatch personnel.'));
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingPersonnel(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, item]);
 
   if (!isOpen || !item) return null;
 
   const validate = () => {
-    const errs: { amount?: string; personnel?: string } = {};
-    const numericAmount = Number(amount.replace(/[^0-9.]/g, ''));
-    if (!amount.trim()) {
-      errs.amount = 'Please enter the amount you want to buy';
-    } else if (isNaN(numericAmount) || numericAmount <= 0) {
-      errs.amount = 'Please enter a valid amount';
+    const errs: { quantity?: string; personnel?: string; menu?: string } = {};
+    const numericQuantity = Number(quantity);
+    if (!Number.isInteger(numericQuantity) || numericQuantity < 1 || numericQuantity > 500) {
+      errs.quantity = 'Quantity must be a whole number between 1 and 500';
     }
 
-    if (!selectedPersonnel) {
+    if (!selectedMenuItem) {
+      errs.menu = 'Select an available menu item';
+    }
+
+    if (!selectedPersonnelId) {
       errs.personnel = 'Please select a personnel to handle your order';
     }
 
@@ -51,29 +85,32 @@ export const DesktopOrderModal: React.FC<DesktopOrderModalProps> = ({
     return Object.keys(errs).length === 0;
   };
 
-  const handleOrderNow = (e: React.FormEvent) => {
+  const handleOrderNow = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
 
+    if (!selectedMenuItem || !selectedPersonnelId) return;
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
+    setSubmitError(null);
+    try {
+      await onSubmitOrder({
+        item,
+        selectedMenuItem,
+        quantity: Number(quantity),
+        notes: notes.trim(),
+        personnel: selectedPersonnel,
+        personnelId: selectedPersonnelId,
+      });
       setIsSuccess(true);
-      setTimeout(() => {
-        onSubmitOrder({
-          item,
-          amount: amount.trim(),
-          notes: notes.trim(),
-          personnel: selectedPersonnel,
-          personnelId: selectedPersonnelId || undefined,
-        });
-        setIsSuccess(false);
-        setAmount('');
-        setNotes('');
-        setSelectedPersonnel('');
-        setSelectedPersonnelId('');
-      }, 600);
-    }, 400);
+      setQuantity('1');
+      setNotes('');
+      setSelectedPersonnel('');
+      setSelectedPersonnelId('');
+    } catch (error: unknown) {
+      setSubmitError(getErrorMessage(error, 'Could not place your order.'));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleAddNoteSuggestion = (suggestion: string) => {
@@ -112,55 +149,54 @@ export const DesktopOrderModal: React.FC<DesktopOrderModalProps> = ({
         </div>
         <form onSubmit={handleOrderNow} className="p-6 sm:p-7 space-y-4">
           <div>
+            <label className="block text-xs sm:text-sm font-semibold text-[#E53935] mb-1.5">
+              Menu item
+            </label>
+            <select
+              value={selectedMenuItem?.id ?? ''}
+              onChange={(event) => {
+                const menuItem = item.menu.find((entry) => entry.id === event.target.value);
+                setSelectedMenuItem(menuItem);
+                if (errors.menu) setErrors((previous) => ({ ...previous, menu: undefined }));
+              }}
+              className="w-full px-4 py-2.5 rounded-lg border border-[#CDD5E1] bg-white text-xs sm:text-sm"
+            >
+              <option value="">Select a menu item</option>
+              {item.menu.map((menuItem) => (
+                <option key={menuItem.id} value={menuItem.id}>
+                  {menuItem.name} — GH₵ {menuItem.priceGHS.toFixed(2)}
+                </option>
+              ))}
+            </select>
+            {errors.menu && <p className="mt-1 text-[11px] text-[#E53935]">{errors.menu}</p>}
+          </div>
+          <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-xs sm:text-sm font-semibold text-[#E53935]">
-                Amount
+                Quantity
               </label>
             </div>
-            <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-[#757575] pointer-events-none">
-                GH₵
-              </span>
-              <input
-                type="text"
-                inputMode="decimal"
-                placeholder="Enter the Amount you want to buy"
-                value={amount}
-                onChange={(e) => {
-                  setAmount(e.target.value);
-                  if (errors.amount) setErrors((prev) => ({ ...prev, amount: undefined }));
-                }}
-                className={`w-full pl-12 pr-4 py-2.5 rounded-lg border text-xs sm:text-sm text-[#212121] placeholder:text-[#B5B5B5] bg-white transition-colors focus:outline-none ${
-                  errors.amount
-                    ? 'border-[#E53935] focus:border-[#E53935] ring-1 ring-[#E53935]'
-                    : 'border-[#CDD5E1] focus:border-[#FF6347] focus:ring-1 focus:ring-[#FF6347]'
-                }`}
-              />
-            </div>
-            <div className="flex flex-wrap items-center gap-1.5 mt-2">
-              {AMOUNT_PRESETS.map((preset) => {
-                const isActive = amount.trim() === preset;
-                return (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => {
-                      setAmount(preset);
-                      if (errors.amount) setErrors((prev) => ({ ...prev, amount: undefined }));
-                    }}
-                    className={`px-2.5 py-1 rounded-lg border text-[11px] font-semibold tabular-nums transition-all cursor-pointer ${
-                      isActive
-                        ? 'bg-[#FFEBE7] text-[#E53935] border-[#FF6E6A]/60'
-                        : 'bg-[#F4F7FA] text-[#757575] border-[#DEE6EE] hover:border-[#CDD5E1] hover:text-[#212121]'
-                    }`}
-                  >
-                    GH₵ {preset}
-                  </button>
-                );
-              })}
-            </div>
-            {errors.amount && (
-              <p className="text-[11px] text-[#E53935] mt-1 font-medium">{errors.amount}</p>
+            <input
+              type="number"
+              min={1}
+              max={500}
+              step={1}
+              value={quantity}
+              onChange={(event) => {
+                setQuantity(event.target.value);
+                if (errors.quantity) setErrors((previous) => ({ ...previous, quantity: undefined }));
+              }}
+              className={`w-full px-4 py-2.5 rounded-lg border text-xs sm:text-sm ${
+                errors.quantity ? 'border-[#E53935]' : 'border-[#CDD5E1]'
+              }`}
+            />
+            {selectedMenuItem && (
+              <p className="mt-1 text-[11px] text-[#757575]">
+                Total: GH₵ {(selectedMenuItem.priceGHS * Number(quantity || 0)).toFixed(2)}
+              </p>
+            )}
+            {errors.quantity && (
+              <p className="text-[11px] text-[#E53935] mt-1 font-medium">{errors.quantity}</p>
             )}
           </div>
 
@@ -194,19 +230,19 @@ export const DesktopOrderModal: React.FC<DesktopOrderModalProps> = ({
 
           <div>
             <label className="block text-xs sm:text-sm font-semibold text-[#E53935]">
-              Select available Personnel
+            Select dispatch personnel
             </label>
             <p className="text-[11px] sm:text-xs text-slate-600 mt-0.5 mb-2 font-normal">
               Choose who will handle this order
             </p>
             <div className="relative">
               <select
-                value={selectedPersonnel}
+                value={selectedPersonnelId}
+                disabled={isLoadingPersonnel}
                 onChange={(e) => {
-                  const val = e.target.value;
-                  setSelectedPersonnel(val);
-                  const found = AVAILABLE_PERSONNEL.find((p) => `${p.name} (${p.role})` === val);
-                  setSelectedPersonnelId(found ? found.id : '');
+                  const person = personnelList.find((p) => p.id === e.target.value);
+                  setSelectedPersonnelId(person?.id ?? '');
+                  setSelectedPersonnel(person ? `${person.name} (${person.role})` : '');
                   if (errors.personnel) setErrors((prev) => ({ ...prev, personnel: undefined }));
                 }}
                 className={`w-full px-4 py-2.5 pr-10 rounded-lg border text-xs sm:text-sm text-slate-700 bg-white appearance-none transition-colors focus:outline-none cursor-pointer ${
@@ -215,19 +251,25 @@ export const DesktopOrderModal: React.FC<DesktopOrderModalProps> = ({
                     : 'border-slate-200 focus:border-[#E53935] focus:ring-1 focus:ring-[#E53935]'
                 }`}
               >
-                <option value="">Select available runner</option>
-                {AVAILABLE_PERSONNEL.map((p) => (
-                  <option key={p.id} value={`${p.name} (${p.role})`}>
-                    {p.name} - {p.role} ({p.status})
+                <option value="">{isLoadingPersonnel ? 'Loading dispatch personnel...' : 'Select dispatch personnel'}</option>
+                {personnelList.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} - {p.role}
                   </option>
                 ))}
               </select>
               <ChevronDown className="w-4 h-4 text-slate-600 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
+            {personnelError && <p role="alert" className="mt-1 text-[11px] text-[#E53935]">{personnelError}</p>}
+            {!isLoadingPersonnel && !personnelError && personnelList.length === 0 && (
+              <p className="mt-1 text-[11px] text-[#757575]">No dispatch personnel are registered yet.</p>
+            )}
             {errors.personnel && (
               <p className="text-[11px] text-red-500 mt-1 font-medium">{errors.personnel}</p>
             )}
           </div>
+
+          {submitError && <p role="alert" className="text-xs text-[#E53935]">{submitError}</p>}
 
           <div className="pt-2 flex items-center justify-end gap-3">
             <button
