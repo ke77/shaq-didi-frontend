@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { FoodJointItem, MenuItem } from '../data/foodJoints';
 import { ChevronDown, Check, UserCheck, MapPin, Star, Clock, ArrowLeft } from 'lucide-react';
-import { AVAILABLE_PERSONNEL, OrderInfoSubmitData } from './OrderInfoPage';
+import { OrderInfoSubmitData } from './OrderInfoPage';
+import { api, PersonnelMember } from '../services/api';
 
 interface DesktopOrderModalProps {
   isOpen: boolean;
@@ -23,7 +24,10 @@ export const DesktopOrderModal: React.FC<DesktopOrderModalProps> = ({
   const [selectedMenuItem, setSelectedMenuItem] = useState<MenuItem | undefined>(undefined);
   const [amount, setAmount] = useState('');
   const [notes, setNotes] = useState('');
+  const [selectedPersonnelId, setSelectedPersonnelId] = useState('');
   const [selectedPersonnel, setSelectedPersonnel] = useState('');
+  const [personnelList, setPersonnelList] = useState<PersonnelMember[]>([]);
+  const [isLoadingPersonnel, setIsLoadingPersonnel] = useState(false);
   const [errors, setErrors] = useState<{ amount?: string; personnel?: string }>({});
   const [step, setStep] = useState<'form' | 'summary'>('form');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,11 +39,31 @@ export const DesktopOrderModal: React.FC<DesktopOrderModalProps> = ({
       setSelectedMenuItem(firstMenu);
       setAmount(firstMenu ? String(firstMenu.priceGHS) : '');
       setNotes('');
+      setSelectedPersonnelId('');
       setSelectedPersonnel('');
       setErrors({});
       setStep('form');
       setIsSubmitting(false);
       setIsSuccess(false);
+
+      let cancelled = false;
+      setIsLoadingPersonnel(true);
+      api
+        .getPersonnel()
+        .then((list) => {
+          if (!cancelled) {
+            setPersonnelList(list);
+          }
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setIsLoadingPersonnel(false);
+          }
+        });
+
+      return () => {
+        cancelled = true;
+      };
     }
   }, [isOpen, item]);
 
@@ -95,6 +119,7 @@ export const DesktopOrderModal: React.FC<DesktopOrderModalProps> = ({
           amount: amount.trim(),
           notes: notes.trim(),
           personnel: selectedPersonnel,
+          personnelId: selectedPersonnelId || undefined,
         });
         setIsSuccess(false);
         setStep('form');
@@ -291,18 +316,28 @@ export const DesktopOrderModal: React.FC<DesktopOrderModalProps> = ({
               <div className="relative">
                 <select
                   value={selectedPersonnel}
+                  disabled={isLoadingPersonnel}
                   onChange={(e) => {
-                    setSelectedPersonnel(e.target.value);
+                    const value = e.target.value;
+                    setSelectedPersonnel(value);
+                    const matched = personnelList.find(
+                      (p) => `${p.name} (${p.role})` === value
+                    );
+                    setSelectedPersonnelId(matched ? matched.id : '');
                     if (errors.personnel) setErrors((prev) => ({ ...prev, personnel: undefined }));
                   }}
-                  className={`w-full px-4 py-2.5 pr-10 rounded-lg border text-xs sm:text-sm text-[#212121] bg-white appearance-none transition-colors focus:outline-none cursor-pointer ${
+                  className={`w-full px-4 py-2.5 pr-10 rounded-lg border text-xs sm:text-sm text-[#212121] bg-white appearance-none transition-colors focus:outline-none cursor-pointer disabled:bg-[#F4F7FA] disabled:text-[#757575] ${
                     errors.personnel
                       ? 'border-[#E53935] focus:border-[#E53935] ring-1 ring-[#E53935]'
                       : 'border-[#CDD5E1] focus:border-[#FF6347] focus:ring-1 focus:ring-[#FF6347]'
                   }`}
                 >
-                  <option value="">Select available personnel</option>
-                  {AVAILABLE_PERSONNEL.map((p) => (
+                  <option value="">
+                    {isLoadingPersonnel
+                      ? 'Loading available personnel...'
+                      : 'Select available personnel'}
+                  </option>
+                  {personnelList.map((p) => (
                     <option key={p.id} value={`${p.name} (${p.role})`}>
                       {p.name} - {p.role} ({p.status})
                     </option>

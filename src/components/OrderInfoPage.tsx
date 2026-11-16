@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FoodJointItem, MenuItem } from '../data/foodJoints';
 import { ArrowLeft, ChevronDown, MapPin, Star, Clock, Check } from 'lucide-react';
 import { ConfirmOrderDrawer } from './ConfirmOrderDrawer';
+import { api, PersonnelMember, FALLBACK_PERSONNEL } from '../services/api';
 
 export interface OrderInfoSubmitData {
   item: FoodJointItem;
@@ -9,6 +10,7 @@ export interface OrderInfoSubmitData {
   amount: string;
   notes: string;
   personnel: string;
+  personnelId?: string;
 }
 
 interface OrderInfoPageProps {
@@ -22,14 +24,7 @@ interface OrderInfoPageProps {
   autoOpenDrawer?: boolean;
 }
 
-export const AVAILABLE_PERSONNEL = [
-  { id: 'p0', name: 'Big Daddy Derrick', role: 'NSP - Haatso Lead Runner', status: 'Available' },
-  { id: 'p1', name: 'Ama Serwaa', role: 'NSP - Station Runner', status: 'Available' },
-  { id: 'p2', name: 'Kofi Mensah', role: 'NSP - Zone A Dispatch', status: 'Available' },
-  { id: 'p3', name: 'Kwame Asante', role: 'NSP - Haatso Central', status: 'Available' },
-  { id: 'p4', name: 'Abena Boateng', role: 'NSP - Station Runner', status: 'Available' },
-  { id: 'p5', name: 'Yaw Darko', role: 'NSP - Food Logistics', status: 'Available' },
-];
+export const AVAILABLE_PERSONNEL = FALLBACK_PERSONNEL;
 
 const AMOUNT_PRESETS = ['20', '35', '50', '75', '100'] as const;
 const NOTE_PRESETS = ['Extra pepper', 'No onions', 'Less oil', 'Call on arrival'] as const;
@@ -50,11 +45,35 @@ export const OrderInfoPage: React.FC<OrderInfoPageProps> = ({
     defaultAmount || (item.menu[0] ? String(item.menu[0].priceGHS) : '')
   );
   const [notes, setNotes] = useState(defaultNotes);
+  const [selectedPersonnelId, setSelectedPersonnelId] = useState('');
   const [selectedPersonnel, setSelectedPersonnel] = useState(defaultPersonnel);
+  const [personnelList, setPersonnelList] = useState<PersonnelMember[]>([]);
+  const [isLoadingPersonnel, setIsLoadingPersonnel] = useState(true);
   const [errors, setErrors] = useState<{ amount?: string; personnel?: string }>({});
   const [isConfirmDrawerOpen, setIsConfirmDrawerOpen] = useState(autoOpenDrawer);
   const [isDrawerSubmitting, setIsDrawerSubmitting] = useState(false);
   const [isDrawerSuccess, setIsDrawerSuccess] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoadingPersonnel(true);
+    api
+      .getPersonnel()
+      .then((list) => {
+        if (!cancelled) {
+          setPersonnelList(list);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoadingPersonnel(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleSelectMenu = (menuItem: MenuItem) => {
     setSelectedMenuItem(menuItem);
@@ -101,6 +120,7 @@ export const OrderInfoPage: React.FC<OrderInfoPageProps> = ({
           amount: amount.trim(),
           notes: notes.trim(),
           personnel: selectedPersonnel,
+          personnelId: selectedPersonnelId || undefined,
         });
       }, 650);
     }, 400);
@@ -310,18 +330,28 @@ export const OrderInfoPage: React.FC<OrderInfoPageProps> = ({
               <div className="relative">
                 <select
                   value={selectedPersonnel}
+                  disabled={isLoadingPersonnel}
                   onChange={(e) => {
-                    setSelectedPersonnel(e.target.value);
+                    const value = e.target.value;
+                    setSelectedPersonnel(value);
+                    const matched = personnelList.find(
+                      (p) => `${p.name} (${p.role})` === value
+                    );
+                    setSelectedPersonnelId(matched ? matched.id : '');
                     if (errors.personnel) setErrors((prev) => ({ ...prev, personnel: undefined }));
                   }}
-                  className={`w-full px-4 py-3 pr-10 rounded-xl border text-xs sm:text-sm text-[#212121] bg-white appearance-none transition-colors focus:outline-none cursor-pointer ${
+                  className={`w-full px-4 py-3 pr-10 rounded-xl border text-xs sm:text-sm text-[#212121] bg-white appearance-none transition-colors focus:outline-none cursor-pointer disabled:bg-[#F4F7FA] disabled:text-[#757575] ${
                     errors.personnel
                       ? 'border-[#E53935] focus:border-[#E53935] ring-1 ring-[#E53935]'
                       : 'border-[#CDD5E1] focus:border-[#FF6347] focus:ring-1 focus:ring-[#FF6347]'
                   }`}
                 >
-                  <option value="">Select available personnel</option>
-                  {AVAILABLE_PERSONNEL.map((p) => (
+                  <option value="">
+                    {isLoadingPersonnel
+                      ? 'Loading available personnel...'
+                      : 'Select available personnel'}
+                  </option>
+                  {personnelList.map((p) => (
                     <option key={p.id} value={`${p.name} (${p.role})`}>
                       {p.name} - {p.role} ({p.status})
                     </option>

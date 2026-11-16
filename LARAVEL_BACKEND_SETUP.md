@@ -86,6 +86,7 @@ Schema::create('orders', function (Blueprint $table) {
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\FoodJointController;
+use App\Http\Controllers\PersonnelController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -98,6 +99,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
 
+    // Available NSP dispatch personnel dropdown
+    Route::get('/personnel', [PersonnelController::class, 'index']);
+
     // Permanent Staff orders
     Route::get('/orders', [OrderController::class, 'index']);
     Route::post('/orders', [OrderController::class, 'store']);
@@ -106,6 +110,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/nsp/orders', [OrderController::class, 'nspAssignedOrders']);
     Route::patch('/orders/{id}/status', [OrderController::class, 'updateStatus']);
 });
+```
+
+### 4.1 Expected `GET /api/personnel` Response Format
+Return either a JSON array or a Laravel Resource `{ "data": [...] }` with objects containing:
+```json
+[
+  {
+    "id": 1,
+    "name": "Ama Serwaa",
+    "role": "NSP - Station Runner",
+    "status": "Available"
+  }
+]
 ```
 
 ---

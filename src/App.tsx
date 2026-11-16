@@ -179,6 +179,7 @@ export default function App() {
         food_item_id: data.item.id,
         amount: data.amount,
         notes: data.notes,
+        personnel_id: data.personnelId,
         personnel_name: data.personnel,
       });
     } catch {

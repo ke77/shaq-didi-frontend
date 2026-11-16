@@ -50,6 +50,24 @@ export interface CreateOrderPayload {
   personnel_name?: string;
 }
 
+export interface PersonnelMember {
+  id: string;
+  name: string;
+  role: string;
+  status: string;
+  phone_number?: string;
+  station?: string;
+}
+
+export const FALLBACK_PERSONNEL: PersonnelMember[] = [
+  { id: 'p0', name: 'Big Daddy Derrick', role: 'NSP - Haatso Lead Runner', status: 'Available' },
+  { id: 'p1', name: 'Ama Serwaa', role: 'NSP - Station Runner', status: 'Available' },
+  { id: 'p2', name: 'Kofi Mensah', role: 'NSP - Zone A Dispatch', status: 'Available' },
+  { id: 'p3', name: 'Kwame Asante', role: 'NSP - Haatso Central', status: 'Available' },
+  { id: 'p4', name: 'Abena Boateng', role: 'NSP - Station Runner', status: 'Available' },
+  { id: 'p5', name: 'Yaw Darko', role: 'NSP - Food Logistics', status: 'Available' },
+];
+
 class ApiService {
   private token: string | null = null;
 
@@ -285,6 +303,35 @@ class ApiService {
       return await this.request<FoodJointItem[]>('/food-joints');
     } catch {
       return FOOD_ITEMS;
+    }
+  }
+
+  /**
+   * Fetches available NSP / dispatch personnel from the Laravel backend (`GET /api/personnel`).
+   * Supports both plain JSON arrays and Laravel API Resource `{ data: [...] }` envelopes.
+   */
+  public async getPersonnel(): Promise<PersonnelMember[]> {
+    try {
+      const response = await this.request<
+        PersonnelMember[] | { data?: Array<Partial<PersonnelMember> & { id: string | number }> }
+      >('/personnel');
+
+      const rawList = Array.isArray(response) ? response : response?.data ?? [];
+      if (!Array.isArray(rawList) || rawList.length === 0) {
+        return FALLBACK_PERSONNEL;
+      }
+
+      return rawList.map((person) => ({
+        id: String(person.id),
+        name: person.name || 'Unnamed Personnel',
+        role: person.role || 'NSP - Dispatch Personnel',
+        status: person.status || 'Available',
+        phone_number: person.phone_number,
+        station: person.station,
+      }));
+    } catch {
+      // Graceful fallback when Laravel backend is offline during standalone UI preview
+      return FALLBACK_PERSONNEL;
     }
   }
 }
